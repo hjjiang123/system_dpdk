@@ -1,0 +1,12 @@
+/* SPDX-License-Identifier: BSD-3-Clause
+ * Copyright(c) 2010-2014 Intel Corporation
+ */
+
+#include "plugin.h"
+
+
+int main(int argc, char **argv) {
+	
+
+	return 0;
+}
