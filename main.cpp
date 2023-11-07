@@ -2,11 +2,14 @@
  * Copyright(c) 2010-2014 Intel Corporation
  */
 
-#include "plugin.h"
+#include "dataplane.h"
 
 
 int main(int argc, char **argv) {
 	
-
+	DataPlane dp;
+    thread t2(&DataPlane::updateTest, &dp);
+    dp.run(argc,argv);
+    t2.join();
 	return 0;
 }
