@@ -10,7 +10,6 @@
 using namespace std;
 
 
-
 class DataPlane
 {
     vector<Plugin *> _handlers;
@@ -47,6 +46,7 @@ public:
 
         // 获取可用网卡设备的数量
         int dev_ports = rte_eth_dev_count_avail();
+        cout<<"dev_ports: "<<dev_ports<<endl;
         if (dev_ports == 0)
         {
             rte_exit(EXIT_FAILURE, "Error: No port available.\n");
@@ -63,6 +63,7 @@ public:
         ret = init_port(0, mbuf_pool);
         if (ret < 0)
         {
+            cout<<"ret: "<<ret<<endl;
             rte_exit(EXIT_FAILURE, "Cannot init port %d\n", port_id);
         }
 
@@ -135,7 +136,7 @@ public:
         {
             cout << "add " << id << endl;
             Plugin *p =new PluginTest1(id++);
-            sleep(10);
+            sleep(100);
             addPlugin(p);
             sleep(1000);
         }
