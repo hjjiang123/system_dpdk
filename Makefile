@@ -5,7 +5,9 @@
 APP = capture
 
 # all source are stored in SRCS-y
-SRCS-y := main.cpp plugin.h dataplane.h capture.h
+SRCS-y := main.cpp
+# SRCS-y := main.cpp plugin.h dataplane.h capture.h
+
 
 PKGCONF ?= pkg-config
 
