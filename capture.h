@@ -64,12 +64,12 @@ int init_port(unsigned int port_id, struct rte_mempool *mbuf_pool) {
 		return ret;
 	}
 
-	// 启动队列
-	ret = rte_eth_rx_queue_setup(port_id, 0, RX_DESC_DEFAULT, rte_eth_dev_socket_id(port_id), NULL, mbuf_pool);
-	if (ret < 0) {
-		rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup:err=%d, port=%d\n", ret, port_id);
-		return ret;
-	}
+	// // 启动队列
+	// ret = rte_eth_rx_queue_setup(port_id, 0, RX_DESC_DEFAULT, rte_eth_dev_socket_id(port_id), NULL, mbuf_pool);
+	// if (ret < 0) {
+	// 	rte_exit(EXIT_FAILURE, "rte_eth_rx_queue_setup:err=%d, port=%d\n", ret, port_id);
+	// 	return ret;
+	// }
 
 	// 开启混杂模式
 	rte_eth_promiscuous_enable(port_id);

@@ -9,49 +9,12 @@
 #include <memory>
 #include "capture.h"
 
-class PluginInterface
+struct PluginInterface
 {
-    size_t _size;
-    int _id;
-    std::string _name;
-    
-public:
-    PluginInterface(std::string name)
-    {
-        _size = 0;
-        _name = name;
-    }
-    PluginInterface(const PluginInterface &p){
-        _id = p.getID();
-        _size = p.getSize();
-    }
-    void setSize(size_t size)
-    {
-        _size = size;
-    }
-    int getID() const
-    {
-        return _id;
-    }
-    void setID(int id)
-    {
-        _id = id;
-    }
-    int getSize() const
-    {
-        return _size;
-    }
-    std::string getName() const
-    {
-        return _name;
-    }
-    PluginInterface &operator=(const PluginInterface &p)
-    {
-        _id = p.getID();
-        _size = p.getSize();
-        return *this;
-    }
-    virtual void process(struct rte_vlan_hdr *rte_vlan_hdr, struct rte_mbuf * mbuf) = 0;
+    size_t size;
+    int id;
+    char * name;
+    void (*process)(struct rte_vlan_hdr *, struct rte_mbuf * );
 };
 
 

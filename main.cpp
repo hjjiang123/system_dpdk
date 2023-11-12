@@ -5,11 +5,10 @@
 #include "dataplane.h"
 
 
+
 int main(int argc, char **argv) {
 	
-	DataPlane dp;
-    thread t2(&DataPlane::updateTest, &dp);
-    dp.run(argc,argv);
-    t2.join();
+	init(1,NULL);
+    run();
 	return 0;
 }
