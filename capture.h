@@ -48,7 +48,7 @@ static void signal_handler(int sigquit) {
 }
 
 // 初始化网卡端口
-int init_port(unsigned int port_id, struct rte_mempool *mbuf_pool) {
+int init_port(unsigned int port_id) {
 	int ret;
 
 	// 判断该网卡端口是否存在
@@ -75,7 +75,7 @@ int init_port(unsigned int port_id, struct rte_mempool *mbuf_pool) {
 	rte_eth_promiscuous_enable(port_id);
 
 	// 启动网卡端口
-	ret = rte_eth_dev_start(port_id);
+	// ret = rte_eth_dev_start(port_id);
 
 	return 0;
 }
