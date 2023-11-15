@@ -15,6 +15,7 @@
 #include <rte_launch.h>
 #include <rte_memory.h>
 #include <rte_memcpy.h>
+#include <rte_flow.h>
 #include <rte_per_lcore.h>
 #include <rte_string_fns.h>
 

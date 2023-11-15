@@ -1,0 +1,9 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#define SOCKET_PORT 8080
+#define SOCKET_BUFFER_SIZE 1024
+#define SOCKET_QUEUE_SIZE 10
+
+
+#endif

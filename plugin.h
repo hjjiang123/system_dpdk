@@ -9,11 +9,14 @@
 #include <memory>
 #include "capture.h"
 
+
+
 struct PluginInterface
 {
     size_t size;
     int id;
     const char * name;
+    struct rte_flow *flow;
     void (*process)(struct rte_vlan_hdr *, struct rte_mbuf * );
 };
 
