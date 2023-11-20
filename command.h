@@ -42,8 +42,7 @@ typedef struct {
             uint32_t dest_mask;
         } add_flow_arg;// 添加流
         struct {
-            uint16_t port_id;
-            struct rte_flow *flow;
+            uint16_t id;
         } del_flow_arg;// 删除流
         struct {
             int queueid;
@@ -93,7 +92,6 @@ void serializeCommand(const Command* command, char* buffer) {
 // 将字节流反序列化为指令结构体
 void deserializeCommand(const char* buffer, Command* command) {
     memcpy(&(command->type), buffer, sizeof(CommandType));
-
     switch (command->type) {
         case REGISTER_PLUGIN:
             memcpy(&(command->args.reg_plugin_arg), buffer + sizeof(CommandType), sizeof(command->args.reg_plugin_arg));
@@ -114,10 +112,10 @@ void deserializeCommand(const char* buffer, Command* command) {
             memcpy(&(command->args.del_flow_arg), buffer + sizeof(CommandType), sizeof(command->args.del_flow_arg));
             break;
         case ADD_QUEUE_TO_CORE:
-            memcpy(&(command->args.Args1a), buffer + sizeof(CommandType), sizeof(command->args.Args1a));
+            memcpy(&(command->args.del_queue_arg), buffer + sizeof(CommandType), sizeof(command->args.del_queue_arg));
             break;
         case DELETE_QUEUE_FROM_CORE:
-            memcpy(&(command->args.Args2a), buffer + sizeof(CommandType), sizeof(command->args.Args2a));
+            memcpy(&(command->args.del_queue_arg), buffer + sizeof(CommandType), sizeof(command->args.del_queue_arg));
             break;
         default:
             fprintf(stderr, "Invalid command type\n");

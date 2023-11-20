@@ -22,10 +22,17 @@
 
 
 /************************************Global Variables***************************************/
-unsigned int _port_id = 0;                                                             // Index of the NIC to capture
-std::map<unsigned int, std::vector<std::shared_ptr<PluginRuntime>>> _handlers;         // List of plugins running on each core
-// std::map<unsigned int, std::vector<std::shared_ptr<PluginRuntime>>> _handlers_updated; // List of plugins to be updated on each core
-std::map<unsigned int, std::vector<Command>> _command_queues;                          // Command queues for each core,to add or delete plugin
+unsigned int _port_id = 0;          // Index of the NIC to capture
+
+std::map<unsigned int, std::vector<std::shared_ptr<PluginRuntime>>> _handlers;  // List of plugins running on each core
+
+struct lcoreCommandQueue {
+    Command queue[SOCKET_QUEUE_SIZE];
+    int front;
+    int rear;
+    std::mutex mt;
+}; // Command queue for each core
+std::map<unsigned int, lcoreCommandQueue> _command_queues;         // Command queues for each core,to add or delete plugin
 
 PluginManager _PM;
 
@@ -94,9 +101,24 @@ int handle_packet_per_core(void *arg)
 
         if (record++ == 10000000)
         {
-            _mt[0][lcore_id].lock();
-            // _handlers[lcore_id] = _handlers_updated[lcore_id];
-            _mt[0][lcore_id].unlock();
+            _command_queues[lcore_id].mt.lock();
+            int k=_command_queues[lcore_id].front;
+            while(k!=_command_queues[lcore_id].rear){
+                switch (_command_queues[lcore_id].queue[k].type)
+                {
+                    case ADD_PLUGIN:
+                        addPlugin(_command_queues[lcore_id].queue[k].args.add_plugin_arg.pluginid, _command_queues[lcore_id].queue[k].args.add_plugin_arg.coreid);
+                        break;
+                    case DELETE_PLUGIN:
+                        deletePlugin(_command_queues[lcore_id].queue[k].args.del_plugin_arg.pluginid, _command_queues[lcore_id].queue[k].args.del_plugin_arg.coreid);
+                        break;
+                    default:
+                        break;
+                }
+                k = (k+1) % SOCKET_QUEUE_SIZE;
+            }
+            _command_queues[lcore_id].front = k;
+            _command_queues[lcore_id].mt.unlock();
             record = 0;
             // Update queue_id
             _mt[1][lcore_id].lock();
@@ -144,12 +166,7 @@ void run()
  */
 int registerPlugin(std::shared_ptr<PluginInfo> plugin)
 {
-    if (_PM.loadPlugin(plugin->filename))
-    {
-        return -1;
-    }
-    // Assign an ID to the plugin and register it
-    return plugin->id;
+    return _PM.loadPlugin(*plugin);
 }
 
 /**
@@ -234,9 +251,30 @@ void addPlugin(int pluginid, int coreid)
         hash_table[pi->hash_info.hashnum],
         myFunctionPtr);
     // Add to the array of plugins to be deployed
-    _mt[0][coreid].lock();
     _handlers[coreid].push_back(newPlugin);
-    _mt[0][coreid].unlock();
+}
+
+void push_Command(Command c,std::map<unsigned int, lcoreCommandQueue> &command_queues){
+    int lcore_id,plugin_id;
+    if(c.type==ADD_PLUGIN){
+        lcore_id = c.args.add_plugin_arg.coreid;
+        plugin_id = c.args.add_plugin_arg.pluginid;
+    }else if(c.type==DELETE_PLUGIN){
+        lcore_id = c.args.del_plugin_arg.coreid;
+        plugin_id = c.args.del_plugin_arg.pluginid;
+    }else{
+        printf("error CommandType\n");
+        return;
+    }
+    command_queues[lcore_id].mt.lock();
+    if((command_queues[lcore_id].rear+1)%SOCKET_QUEUE_SIZE==command_queues[lcore_id].front){
+        printf("command queue is full\n");
+    }else{
+        command_queues[lcore_id].queue[command_queues[lcore_id].rear] = c;
+        command_queues[lcore_id].rear = (command_queues[lcore_id].rear+1)%SOCKET_QUEUE_SIZE;
+    }
+    command_queues[lcore_id].mt.unlock();
+    return;
 }
 
 /**
@@ -256,7 +294,6 @@ void deletePlugin(int pluginid, int coreid)
     {
         if ((*iter)->id == pluginid)
         {
-            _mt[0][coreid].lock();
             // Release resources
             for (int i = 0; i < pi->cnt_info.rownum; i++)
             {
@@ -280,7 +317,6 @@ void deletePlugin(int pluginid, int coreid)
             }
             // Remove from the array of plugins to be deployed
             _handlers[coreid].erase(iter);
-            _mt[0][coreid].unlock();
             break;
         }
     }

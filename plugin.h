@@ -43,9 +43,8 @@ struct PluginInfo{
     int id;  /**< Plugin identifier */
     CounterInfo cnt_info;  /**< Counter information */
     HashInfo hash_info;  /**< Hash information */
-    std::string funcname;  /**< Plugin function */
-    std::string filename;  /**< Plugin filename */
-    void * handle;  /**< Plugin handle */
+    char funcname[30];  /**< Plugin function */
+    char filename[100];  /**< Plugin filename */
 };
 
 

@@ -2,22 +2,55 @@
 #ifndef PLUGIN_MANAGER_H
 #define PLUGIN_MANAGER_H
 
-#include <string>
 #include <vector>
 #include <dlfcn.h>
 #include "plugin.h"
 
+typedef void* PluginHandle;
+struct PluginHandleInfo{
+    PluginInfo info;
+    PluginHandle handle;
+};
+
 //类内函数实现均在cpp
+/**
+ * @brief The PluginManager class manages the loading and unloading of plugins.
+ */
 class PluginManager{
 public:
+    /**
+     * @brief Constructs a PluginManager object.
+     */
     PluginManager();//构造函数
+
+    /**
+     * @brief Destructs the PluginManager object.
+     */
     ~PluginManager();//析构函数
 
-    bool loadPlugin(const std::string& filename);//加载插件
-    bool unloadPlugin(const std::string& filename);//卸载插件
+    /**
+     * @brief Loads a plugin from the specified PluginInfo.
+     * @param info The PluginInfo object containing the plugin information.
+     * @return Returns 0 on success, or a negative value on failure.
+     */
+    int loadPlugin(PluginInfo info);//加载插件
 
+    /**
+     * @brief Unloads a plugin with the specified filename.
+     * @param filename The filename of the plugin to unload.
+     * @return Returns true if the plugin was successfully unloaded, false otherwise.
+     */
+    bool unloadPlugin(const char filename[]);//卸载插件
+
+    /**
+     * @brief Retrieves a function pointer from a loaded plugin.
+     * @tparam T The type of the function pointer.
+     * @param filename The filename of the plugin.
+     * @param functionName The name of the function to retrieve. Defaults to "process".
+     * @return Returns the function pointer of type T if successful, or NULL if the function was not found.
+     */
     template<typename T> 
-    T getFunction(const std::string& filename, const std::string& functionName="process"){
+    T getFunction(const char filename[], const char functionName[]="process"){
         PluginHandle handle = getPluginHandle(filename);
         if (handle == NULL)
             return NULL;
@@ -29,16 +62,23 @@ public:
 
         return reinterpret_cast<T>(proc);
     }
-    typedef void* PluginHandle;
-    PluginHandle getPluginHandle(const std::string& filename);
 
+    /**
+     * @brief Retrieves the handle of a loaded plugin.
+     * @param filename The filename of the plugin.
+     * @return Returns the handle of the plugin if found, or NULL if the plugin was not loaded.
+     */
+    PluginHandle getPluginHandle(const char filename[]);
+
+    /**
+     * @brief Retrieves the PluginInfo object associated with the specified plugin ID.
+     * @param id The ID of the plugin.
+     * @return Returns a pointer to the PluginInfo object if found, or NULL if the plugin ID was not found.
+     */
     PluginInfo *getPluginInfo_fromid(int id);
 private:
-    
-    std::vector<PluginInfo> plugins_;
-
-    
-    int _nextId = 1; // 下一个可用的插件编号
+    std::vector<PluginHandleInfo> plugins_; // Vector to store loaded plugins
+    int _nextId = 1; // Next available plugin ID
 };
 
 #endif

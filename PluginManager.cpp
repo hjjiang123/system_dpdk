@@ -9,27 +9,23 @@ PluginManager::~PluginManager(){
         dlclose(plugin.handle);
 }
 
-bool PluginManager::loadPlugin(const std::string& filename){
+int PluginManager::loadPlugin(PluginInfo info){
     PluginHandle handle = NULL;
 
-    handle = dlopen(filename.c_str(), RTLD_LAZY);
+    handle = dlopen(info.filename, RTLD_LAZY);
 
     if (handle == NULL)
-        return false;
-
-    PluginInfo info;
-    info.filename = filename;
-    info.handle = handle;
-    info.id = _nextId++;
-
-    plugins_.push_back(std::move(info));
-
-    return true;
+        return -1;
+    int id = _nextId++;
+    info.id = id;
+    PluginHandleInfo handleinfo={info, handle};
+    plugins_.push_back(std::move(handleinfo));
+    return id;
 }
 
-bool PluginManager::unloadPlugin(const std::string& filename){
+bool PluginManager::unloadPlugin(const char filename[]){
     for (auto it = plugins_.begin(); it != plugins_.end(); ++it){
-        if (it->filename == filename){
+        if (it->info.filename == filename){
             dlclose(it->handle);
             plugins_.erase(it);
             return true;
@@ -39,32 +35,20 @@ bool PluginManager::unloadPlugin(const std::string& filename){
     return false;
 }
 
-PluginManager::PluginHandle PluginManager::getPluginHandle(const std::string& filename){
+PluginHandle PluginManager::getPluginHandle(const char filename[]){
     for (auto& plugin : plugins_){
-        if (plugin.filename == filename)
+        if (plugin.info.filename == filename)
             return plugin.handle;
     }
-
-    PluginHandle handle = NULL;
-
-    handle = dlopen(filename.c_str(), RTLD_LAZY);
-
-    if (handle == NULL)
-        return NULL;
-
-    PluginInfo info;
-    info.filename = filename;
-    info.handle = handle;
-    
-    plugins_.push_back(info);
-
-    return handle;
+    return NULL;
 }
 
 PluginInfo *PluginManager::getPluginInfo_fromid(int id){
     for (auto& plugin : plugins_){
-        if (plugin.id == id)
-            return &plugin;
+        if (plugin.info.id == id) {
+            PluginInfo* info = new PluginInfo(plugin.info);
+            return info;
+        }
     }
-    return NULL;
+    return nullptr;
 }

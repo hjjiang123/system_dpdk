@@ -29,7 +29,7 @@ struct flow_id *register_flow(int port_id, struct rte_flow *flow)
 	flow_id.id = _flow_id++;
 	flow_id.port_id = port_id;
 	flow_id.flow = flow;
-	flow_list.push_back(flow_id);
+	flow_list.push_back(std::move(flow_id));
 	return &flow_id;
 }
 void unregister_flow(struct flow_id *flow_id){
