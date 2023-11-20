@@ -1,9 +1,8 @@
-#ifndef SERVER_C
-#define SERVER_C
+#ifndef SERVER_H
+#define SERVER_H
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -38,19 +37,51 @@ void *executeCommands(void *arg)
             pthread_cond_wait(&cond, &mutex);
         }
         // 取出队列中的指令
-        char command[SOCKET_BUFFER_SIZE];
-        strcpy(command, commandQueue[front].command);
+        Command cur_cmd = commandQueue[front];
         // 更新队列索引
         front = (front + 1) % SOCKET_QUEUE_SIZE;
         pthread_mutex_unlock(&mutex);
-        // 执行指令
-        printf("Executing command: %s\n", command);
-        system(command);
+        switch(cur_cmd.type){
+            case REGISTER_PLUGIN:
+                registerPlugin(cur_cmd.args.reg_plugin_arg);
+                break;
+            case UNREGISTE_RPLUGIN:
+                unregisterPlugin(cur_cmd.args.unreg_plugin_arg.pluginid);
+                break;
+            case ADD_PLUGIN:
+                push_Command(cur_cmd);
+                break;
+            case DELETE_PLUGIN:
+                push_Command(cur_cmd);
+                break;
+            case ADD_FLOW_TO_QUEUE:
+                addFlowToQueue(
+                    cur_cmd.args.add_flow_arg.port_id,
+                    cur_cmd.args.add_flow_arg.rx_q,
+                    cur_cmd.args.add_flow_arg.src_ip,
+                    cur_cmd.args.add_flow_arg.src_mask,
+                    cur_cmd.args.add_flow_arg.dest_ip,
+                    cur_cmd.args.add_flow_arg.dest_mask
+                );
+                break;
+            case DELETE_FLOW_FROM_QUEUE:
+                deleteFlowFromQueue(cur_cmd.args.del_flow_arg.id);
+                break;
+            case ADD_QUEUE_TO_CORE:
+                push_Command(cur_cmd);
+                break;
+            case DELETE_QUEUE_FROM_CORE:
+                push_Command(cur_cmd);
+                break;
+            default:
+                break;
+        }
+
     }
     return NULL;
 }
 
-int listenCommand()
+void* listenCommand(void *arg)
 {
     int server_fd, new_socket, valread;
     struct sockaddr_in address;
@@ -103,7 +134,9 @@ int listenCommand()
                 // 队列已满，丢弃最早的指令
                 front = (front + 1) % SOCKET_QUEUE_SIZE;
             }
-            strcpy(commandQueue[rear].command, buffer);
+            Command temp_cmd;
+            deserializeCommand(buffer,&temp_cmd);
+            commandQueue[rear] = temp_cmd;
             rear = (rear + 1) % SOCKET_QUEUE_SIZE;
             // 发送条件变量信号，唤醒等待的线程
             pthread_cond_signal(&cond);
@@ -112,18 +145,22 @@ int listenCommand()
         // 关闭客户端的Socket文件描述符
         close(new_socket);
     }
-    return 0;
+    // return NULL;
 }
 
 int runserver()
 {
     // 创建执行指令的线程
-    pthread_t tid;
-    if (pthread_create(&tid, NULL, executeCommands, NULL) != 0)
+    pthread_t t1,t2;
+    if (pthread_create(&t1, NULL, executeCommands, NULL) != 0)
     {
-        perror("pthread_create");
+        perror("pthread_create 1");
         exit(EXIT_FAILURE);
     }
-    listenCommand();
+    if (pthread_create(&t2, NULL, listenCommand, NULL) != 0)
+    {
+        perror("pthread_create 2");
+        exit(EXIT_FAILURE);
+    }
 }
 #endif

@@ -1,5 +1,5 @@
-#ifndef CLIENT_C
-#define CLIENT_C
+#ifndef CLIENT_H
+#define CLIENT_H
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,7 +9,7 @@
 #include "command.h"
 
 
-int sendCommand() {
+int sendCommand(Command cmd) {
     int sock = 0, valread;
     struct sockaddr_in serv_addr;
     char buffer[SOCKET_BUFFER_SIZE] = {0};
@@ -35,13 +35,11 @@ int sendCommand() {
     }
     
     // 读取用户输入的指令并发送到服务端
-    printf("Enter command: ");
-    fgets(buffer, SOCKET_BUFFER_SIZE, stdin);
+    serializeCommand(&cmd, buffer);
     send(sock, buffer, strlen(buffer), 0);
     
     // 关闭客户端的Socket文件描述符
     close(sock);
-    
     return 0;
 }
 

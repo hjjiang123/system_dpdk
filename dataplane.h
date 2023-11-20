@@ -112,6 +112,12 @@ int handle_packet_per_core(void *arg)
                     case DELETE_PLUGIN:
                         deletePlugin(_command_queues[lcore_id].queue[k].args.del_plugin_arg.pluginid, _command_queues[lcore_id].queue[k].args.del_plugin_arg.coreid);
                         break;
+                    case ADD_QUEUE_TO_CORE:
+                        addQueueToCore(_command_queues[lcore_id].queue[k].args.add_queue_arg.queueid, _command_queues[lcore_id].queue[k].args.add_queue_arg.coreid);
+                        break;
+                    case DELETE_QUEUE_FROM_CORE:
+                        deleteQueueFromCore(_command_queues[lcore_id].queue[k].args.del_queue_arg.queueid, _command_queues[lcore_id].queue[k].args.del_queue_arg.coreid);
+                        break;
                     default:
                         break;
                 }
@@ -120,10 +126,6 @@ int handle_packet_per_core(void *arg)
             _command_queues[lcore_id].front = k;
             _command_queues[lcore_id].mt.unlock();
             record = 0;
-            // Update queue_id
-            _mt[1][lcore_id].lock();
-            _core_queues[lcore_id] = _core_queues_updated[lcore_id];
-            _mt[1][lcore_id].unlock();
         }
     }
 }
@@ -164,9 +166,9 @@ void run()
  * @param plugin A shared pointer to the PluginInfo object representing the plugin to be registered.
  * @return The ID assigned to the registered plugin, or -1 if the plugin failed to load.
  */
-int registerPlugin(std::shared_ptr<PluginInfo> plugin)
+int registerPlugin(PluginInfo plugin)
 {
-    return _PM.loadPlugin(*plugin);
+    return _PM.loadPlugin(plugin);
 }
 
 /**
@@ -176,9 +178,9 @@ int registerPlugin(std::shared_ptr<PluginInfo> plugin)
  *
  * @param plugin The shared pointer to the PluginInfo object representing the plugin to be unregistered.
  */
-void unregisterPlugin(std::shared_ptr<PluginInfo> plugin)
+void unregisterPlugin(PluginInfo plugin)
 {
-    _PM.unloadPlugin(plugin->filename);
+    _PM.unloadPlugin(plugin.filename);
 }
 
 /**
@@ -254,28 +256,7 @@ void addPlugin(int pluginid, int coreid)
     _handlers[coreid].push_back(newPlugin);
 }
 
-void push_Command(Command c,std::map<unsigned int, lcoreCommandQueue> &command_queues){
-    int lcore_id,plugin_id;
-    if(c.type==ADD_PLUGIN){
-        lcore_id = c.args.add_plugin_arg.coreid;
-        plugin_id = c.args.add_plugin_arg.pluginid;
-    }else if(c.type==DELETE_PLUGIN){
-        lcore_id = c.args.del_plugin_arg.coreid;
-        plugin_id = c.args.del_plugin_arg.pluginid;
-    }else{
-        printf("error CommandType\n");
-        return;
-    }
-    command_queues[lcore_id].mt.lock();
-    if((command_queues[lcore_id].rear+1)%SOCKET_QUEUE_SIZE==command_queues[lcore_id].front){
-        printf("command queue is full\n");
-    }else{
-        command_queues[lcore_id].queue[command_queues[lcore_id].rear] = c;
-        command_queues[lcore_id].rear = (command_queues[lcore_id].rear+1)%SOCKET_QUEUE_SIZE;
-    }
-    command_queues[lcore_id].mt.unlock();
-    return;
-}
+
 
 /**
  * @brief Deletes a plugin from the specified core.
@@ -366,4 +347,28 @@ void deleteQueueFromCore(int queueid, int coreid)
     _mt[1][coreid].unlock();
 }
 
+void push_Command(Command c){
+    int lcore_id;
+    if(c.type==ADD_PLUGIN){
+        lcore_id = c.args.add_plugin_arg.coreid;
+    }else if(c.type==DELETE_PLUGIN){
+        lcore_id = c.args.del_plugin_arg.coreid;
+    }else if (c.type==ADD_QUEUE_TO_CORE){
+        lcore_id = c.args.add_queue_arg.coreid;
+    }else if (c.type==DELETE_FLOW_FROM_QUEUE){
+        lcore_id = c.args.del_queue_arg.coreid;
+    }else{
+        printf("error CommandType\n");
+        return;
+    }
+    _command_queues[lcore_id].mt.lock();
+    if((_command_queues[lcore_id].rear+1)%SOCKET_QUEUE_SIZE==_command_queues[lcore_id].front){
+        printf("command queue is full\n");
+    }else{
+        _command_queues[lcore_id].queue[_command_queues[lcore_id].rear] = c;
+        _command_queues[lcore_id].rear = (_command_queues[lcore_id].rear+1)%SOCKET_QUEUE_SIZE;
+    }
+    _command_queues[lcore_id].mt.unlock();
+    return;
+}
 #endif

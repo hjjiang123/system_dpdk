@@ -5,7 +5,9 @@
 #include "config.h"
 #include "plugin.h"
 
-// 定义指令类型
+/**
+ * @brief Enumeration of command types.
+ */
 typedef enum {
     REGISTER_PLUGIN,   
     UNREGISTE_RPLUGIN,   
@@ -17,22 +19,27 @@ typedef enum {
     DELETE_QUEUE_FROM_CORE,
 } CommandType;
 
-// 定义指令结构体
+/**
+ * @brief Represents a command structure.
+ * 
+ * This structure is used to define different types of commands and their corresponding arguments.
+ * Each command type has a specific set of arguments defined in the union.
+ */
 typedef struct {
-    CommandType type;
+    CommandType type; /**< The type of the command. */
     union {
-        struct PluginInfo reg_plugin_arg; // 注册插件
+        struct PluginInfo reg_plugin_arg; /**< Arguments for registering a plugin. */
         struct {
             int pluginid;
-        } unreg_plugin_arg;// 取消注册插件
-        struct {
-            int pluginid;
-            int coreid;
-        } add_plugin_arg;// 添加插件
+        } unreg_plugin_arg; /**< Arguments for unregistering a plugin. */
         struct {
             int pluginid;
             int coreid;
-        } del_plugin_arg;// 删除插件
+        } add_plugin_arg; /**< Arguments for adding a plugin. */
+        struct {
+            int pluginid;
+            int coreid;
+        } del_plugin_arg; /**< Arguments for deleting a plugin. */
         struct {
             uint16_t port_id;
             uint16_t rx_q;
@@ -40,22 +47,28 @@ typedef struct {
             uint32_t src_mask;
             uint32_t dest_ip;
             uint32_t dest_mask;
-        } add_flow_arg;// 添加流
+        } add_flow_arg; /**< Arguments for adding a flow. */
         struct {
             uint16_t id;
-        } del_flow_arg;// 删除流
+        } del_flow_arg; /**< Arguments for deleting a flow. */
         struct {
             int queueid;
             int coreid;
-        } add_queue_arg;// 添加队列
+        } add_queue_arg; /**< Arguments for adding a queue. */
         struct {
             int queueid;
             int coreid;
-        } del_queue_arg;// 删除队列
-    } args;
+        } del_queue_arg; /**< Arguments for deleting a queue. */
+    } args; /**< The arguments of the command. */
 } Command;
-// command.h文件中Command结构体怎样序列化成字节流，要求反序列化后生成的Command和原先一模一样
-// 将指令结构体序列化为字节流
+
+
+/**
+ * Serializes a Command object into a buffer.
+ * 
+ * @param command The Command object to be serialized.
+ * @param buffer The buffer to store the serialized data.
+ */
 void serializeCommand(const Command* command, char* buffer) {
     memcpy(buffer, &(command->type), sizeof(CommandType));
     switch (command->type) {
@@ -89,7 +102,16 @@ void serializeCommand(const Command* command, char* buffer) {
     }
 }
 
-// 将字节流反序列化为指令结构体
+
+/**
+ * @brief Deserializes a command from a buffer.
+ * 
+ * This function deserializes a command from a buffer and populates the provided Command structure.
+ * The buffer should contain the serialized command data.
+ * 
+ * @param buffer The buffer containing the serialized command data.
+ * @param command Pointer to the Command structure to populate.
+ */
 void deserializeCommand(const char* buffer, Command* command) {
     memcpy(&(command->type), buffer, sizeof(CommandType));
     switch (command->type) {

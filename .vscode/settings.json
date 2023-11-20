@@ -51,6 +51,9 @@
         "thread": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "string.h": "c",
+        "stdbool.h": "c",
+        "stdio.h": "c"
     }
 }
