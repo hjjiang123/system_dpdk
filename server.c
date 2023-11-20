@@ -1,3 +1,5 @@
+#ifndef SERVER_C
+#define SERVER_C
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -13,8 +15,6 @@
 /********************************************
  * 监听用户指令线程
  ********************************************/
-
-
 
 // 全局变量，指令队列和队列索引
 Command commandQueue[SOCKET_QUEUE_SIZE];
@@ -126,3 +126,4 @@ int runserver()
     }
     listenCommand();
 }
+#endif

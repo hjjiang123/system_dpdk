@@ -3,14 +3,72 @@
 /* SPDX-License-Identifier: BSD-3-Clause
  * Copyright 2017 Mellanox Technologies, Ltd
  */
+#include <vector>
+#include <rte_flow.h>
+
 #define MAX_PATTERN_NUM		3
 #define MAX_ACTION_NUM		2
 
-struct rte_flow *
-generate_ipv4_flow(uint16_t port_id, uint16_t rx_q,
-		uint32_t src_ip, uint32_t src_mask,
-		uint32_t dest_ip, uint32_t dest_mask,
-		struct rte_flow_error *error);
+
+int _flow_id = 0;
+
+struct flow_id {
+	int id;
+	int port_id;
+	struct rte_flow *flow;
+};
+
+std::vector<struct flow_id> flow_list;
+
+struct flow_id *register_flow(int port_id, struct rte_flow *flow)
+{
+	if(flow == NULL){
+		return NULL;
+	}
+	struct flow_id flow_id;
+	flow_id.id = _flow_id++;
+	flow_id.port_id = port_id;
+	flow_id.flow = flow;
+	flow_list.push_back(flow_id);
+	return &flow_id;
+}
+void unregister_flow(struct flow_id *flow_id){
+	for (int i = 0; i < flow_list.size(); i++)
+	{
+		if (flow_list[i].flow == flow_id->flow)
+		{
+			flow_list.erase(flow_list.begin() + i);
+			break;
+		}
+	}
+}
+void unregister_flow_with_id(int id){
+	for (int i = 0; i < flow_list.size(); i++)
+	{
+		if (flow_list[i].id == id)
+		{
+			flow_list.erase(flow_list.begin() + i);
+			break;
+		}
+	}
+}
+
+struct flow_id *query_flow_id(int id){
+	for (int i = 0; i < flow_list.size(); i++)
+	{
+		if (flow_list[i].id == id)
+		{
+			return &flow_list[i];
+		}
+	}
+	return NULL;
+}
+
+// struct rte_flow *
+// generate_ipv4_flow(uint16_t port_id, uint16_t rx_q,
+// 		uint32_t src_ip, uint32_t src_mask,
+// 		uint32_t dest_ip, uint32_t dest_mask,
+// 		struct rte_flow_error *error);
 
 
 /**
@@ -37,7 +95,7 @@ generate_ipv4_flow(uint16_t port_id, uint16_t rx_q,
  */
 
 /* Function responsible for creating the flow rule. 8< */
-struct rte_flow *
+struct flow_id*
 generate_ipv4_flow(uint16_t port_id, uint16_t rx_q,
 		uint32_t src_ip, uint32_t src_mask,
 		uint32_t dest_ip, uint32_t dest_mask,
@@ -106,9 +164,31 @@ generate_ipv4_flow(uint16_t port_id, uint16_t rx_q,
 	res = rte_flow_validate(port_id, &attr, pattern, action, error);
 	if (!res)
 		flow = rte_flow_create(port_id, &attr, pattern, action, error);
+		struct flow_id *fi = register_flow(port_id,flow);
 	/* >8 End of validation the rule and create it. */
 
-	return flow;
+	return fi;
+}
+
+void destroy_ipv4_flow(struct flow_id *flow_id)
+{
+	if(flow_id == NULL){
+		return;
+	}
+	struct rte_flow_error error;
+	struct rte_flow *flow = flow_id->flow;
+	int ret = rte_flow_destroy( flow_id->port_id,flow,&error);
+	if (ret) {
+		printf("Flow can't be destroyed %d message: %s\n",
+			error.type,
+			error.message ? error.message : "(no stated reason)");
+		rte_exit(EXIT_FAILURE, "error in destroying flow");
+	}
+	unregister_flow(flow_id);
+}
+void destroy_ipv4_flow_with_id(int id){
+	struct flow_id *flow_id = query_flow_id(id);
+	destroy_ipv4_flow(flow_id);
 }
 /* >8 End of function responsible for creating the flow rule. */
 

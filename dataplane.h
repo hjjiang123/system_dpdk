@@ -7,39 +7,50 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <stdio.h>
+#include <stdlib.h>
+#include <rte_hash.h>
+#include <rte_hash_crc.h>
+
 #include "capture.h"
 #include "plugin.h"
 #include "flow_blocks.c"
+#include "PluginManager.h"
+#include "command.h"
+
 #define MAX_CORE_NUMS 100
 
-unsigned int _port_id = 0;                                                               // 需要抓取网卡的索引号
-std::map<unsigned int, std::vector<std::shared_ptr<PluginInterface>>> _handlers;         // 运行在各个核的插件列表
-std::map<unsigned int, std::vector<std::shared_ptr<PluginInterface>>> _handlers_updated; // 待更新的各个核的插件列表
-std::map<int, std::shared_ptr<PluginInterface>> _plugins;                                // 插件库
 
-int _nextId = 1; // 下一个可用的插件编号
+/************************************Global Variables***************************************/
+unsigned int _port_id = 0;                                                             // Index of the NIC to capture
+std::map<unsigned int, std::vector<std::shared_ptr<PluginRuntime>>> _handlers;         // List of plugins running on each core
+// std::map<unsigned int, std::vector<std::shared_ptr<PluginRuntime>>> _handlers_updated; // List of plugins to be updated on each core
+std::map<unsigned int, std::vector<Command>> _command_queues;                          // Command queues for each core,to add or delete plugin
 
-std::mutex _mt[2][MAX_CORE_NUMS];  //_mt[0]用于_handlers更新，_mt[1]用于_core_queues更新
-unsigned int _num_cores; // 获取可用的核心数量
+PluginManager _PM;
 
-std::vector<std::vector<int>> _core_queues(MAX_CORE_NUMS); //每核心监听的队列号
-std::vector<std::vector<int>> _core_queues_updated(MAX_CORE_NUMS); //每核心监听的队列号
+int _nextId = 1; // Next available plugin ID
 
+std::mutex _mt[2][MAX_CORE_NUMS]; //_mt[0] is used for _command_queues update, _mt[1] is used for _core_queues update
+unsigned int _num_cores;          // Number of available cores
 
-/************************************系统函数***************************************/
-// 配置网卡设备号
+std::vector<std::vector<int>> _core_queues(MAX_CORE_NUMS);         // Queues listened by each core
+std::vector<std::vector<int>> _core_queues_updated(MAX_CORE_NUMS); // Queues listened by each core to be updated
+
+/************************************System Functions***************************************/
+// Configure the NIC device number
 void configurePort(unsigned int port_id)
 {
     _port_id = port_id;
 }
 
-// 配置逻辑核数量
+// Configure the number of logical cores
 void configureNumCores(unsigned int numcores)
 {
     _num_cores = numcores;
 }
 
-// 初始化dpdk环境
+// Initialize the dpdk environment
 void init(int argc, char **argv)
 {
     int ret = rte_eal_init(argc, argv);
@@ -51,7 +62,7 @@ void init(int argc, char **argv)
         rte_exit(EXIT_FAILURE, "Insufficient cores\n");
 }
 
-// 每个核心的守护线程
+// Daemon thread for each core
 int handle_packet_per_core(void *arg)
 {
     unsigned int lcore_id = rte_lcore_id();
@@ -59,10 +70,11 @@ int handle_packet_per_core(void *arg)
     struct rte_mbuf *mbufs[DPDKCAP_CAPTURE_BURST_SIZE];
     struct rte_ether_hdr *eth_hdr;
     int record = 0;
-    // 接收报文并处理
+    // Receive and process packets
     while (1)
     {
-        for(int q=0;q<_core_queues[lcore_id].size();q++){
+        for (int q = 0; q < _core_queues[lcore_id].size(); q++)
+        {
             int queue_id = _core_queues[lcore_id][q];
             const uint16_t nb_rx = rte_eth_rx_burst(_port_id, 0, mbufs, DPDKCAP_CAPTURE_BURST_SIZE);
             for (uint16_t i = 0; i < nb_rx; ++i)
@@ -73,20 +85,20 @@ int handle_packet_per_core(void *arg)
                     struct rte_vlan_hdr *vlan_hdr = rte_pktmbuf_mtod_offset(mbufs[i], struct rte_vlan_hdr *, sizeof(struct rte_ether_hdr));
                     for (int j = 0; j < _handlers[lcore_id].size(); j++)
                     {
-                        _handlers[lcore_id][j]->process(vlan_hdr, mbufs[i]);
+                        _handlers[lcore_id][j]->func(vlan_hdr, mbufs[i], _handlers[lcore_id][j]->hash_table, _handlers[lcore_id][j]->res);
                     }
                 }
                 rte_pktmbuf_free(mbufs[i]);
             }
         }
-        
+
         if (record++ == 10000000)
         {
             _mt[0][lcore_id].lock();
-            _handlers[lcore_id] = _handlers_updated[lcore_id];
+            // _handlers[lcore_id] = _handlers_updated[lcore_id];
             _mt[0][lcore_id].unlock();
             record = 0;
-            //修改queue_id
+            // Update queue_id
             _mt[1][lcore_id].lock();
             _core_queues[lcore_id] = _core_queues_updated[lcore_id];
             _mt[1][lcore_id].unlock();
@@ -94,7 +106,7 @@ int handle_packet_per_core(void *arg)
     }
 }
 
-// 运行主线程核部署子线程到每核心
+// Main thread to deploy child threads to each core
 void run()
 {
     rte_flow_error error;
@@ -108,7 +120,7 @@ void run()
     }
     for (int i = 0; i < _num_cores; i++)
     {
-        // 等待逻辑核心执行完毕
+        // Wait for logical cores to finish execution
         int ret = rte_eal_wait_lcore(i);
         if (ret < 0)
         {
@@ -122,96 +134,192 @@ void run()
     rte_eal_cleanup();
 }
 
-/************************************功能函数************************************/
+/************************************Utility Functions************************************/
 
-// 注册插件
-int registerPlugin(std::shared_ptr<PluginInterface> plugin)
+/**
+ * Registers a plugin and returns its assigned ID.
+ *
+ * @param plugin A shared pointer to the PluginInfo object representing the plugin to be registered.
+ * @return The ID assigned to the registered plugin, or -1 if the plugin failed to load.
+ */
+int registerPlugin(std::shared_ptr<PluginInfo> plugin)
 {
-    // 为插件分配编号并注册
-    plugin->id = _nextId;
-    _nextId++;
-    _plugins[_nextId] = plugin;
+    if (_PM.loadPlugin(plugin->filename))
+    {
+        return -1;
+    }
+    // Assign an ID to the plugin and register it
     return plugin->id;
 }
 
-// 注销插件
-void unregisterPlugin(std::shared_ptr<PluginInterface> plugin)
+/**
+ * @brief Unregisters a plugin from the plugins list.
+ *
+ * This function searches for the specified plugin in the plugins list and removes it.
+ *
+ * @param plugin The shared pointer to the PluginInfo object representing the plugin to be unregistered.
+ */
+void unregisterPlugin(std::shared_ptr<PluginInfo> plugin)
 {
-    // 在 plugins 列表中查找并移除指定的插件
-    for (auto it = _plugins.begin(); it != _plugins.end();)
+    _PM.unloadPlugin(plugin->filename);
+}
+
+/**
+ * @brief Unregisters a plugin with the given plugin ID.
+ * 
+ * This function unloads the plugin associated with the given plugin ID.
+ * 
+ * @param pluginid The ID of the plugin to unregister.
+ */
+void unregisterPlugin(int pluginid)
+{
+    PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
+    _PM.unloadPlugin(pi->filename);
+}
+
+/**
+ * @brief Adds a plugin to the system.
+ *
+ * This function allocates resources for the plugin, creates a hash table,
+ * retrieves the function pointer for the plugin, and creates a plugin runtime object.
+ * The plugin is then added to the array of plugins to be deployed.
+ *
+ * @param pluginid The ID of the plugin.
+ * @param coreid The ID of the core where the plugin will be deployed.
+ */
+void addPlugin(int pluginid, int coreid)
+{
+    // Get plugin information
+    PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
+    // Allocate resources for the plugin
+    Byte ****res = (Byte ****)malloc(pi->cnt_info.rownum * sizeof(Byte ***));
+    for (int i = 0; i < pi->cnt_info.rownum; i++)
     {
-        if (it->second->name == plugin->name)
+        res[i] = (Byte ***)malloc(pi->cnt_info.bucketnum * sizeof(Byte **));
+        for (int j = 0; j < pi->cnt_info.bucketnum; j++)
         {
-            it = _plugins.erase(it); // 删除当前元素，并返回下一个元素的迭代器
+            res[i][j] = (Byte **)malloc(pi->cnt_info.bucketsize * sizeof(Byte *));
+            for (int k = 0; k < pi->cnt_info.bucketsize; k++)
+            {
+                res[i][j][k] = (Byte *)malloc(pi->cnt_info.countersize * sizeof(Byte));
+            }
         }
-        else
+    }
+    // Create hash tables
+    struct rte_hash *hash_table[pi->hash_info.hashnum];
+    for (int i = 0; i < pi->hash_info.hashnum; i++)
+    {
+        char name[20];
+        sprintf(name, "%d_%d", pi->id, i);
+        struct rte_hash_parameters hash_params = {
+            .name = name,
+            .entries = pi->hash_info.entries,
+            .key_len = pi->hash_info.key_len,
+            .hash_func = rte_hash_crc,
+            .hash_func_init_val = i,
+        };
+        hash_table[i] = rte_hash_create(&hash_params);
+        if (hash_table[i] == NULL)
         {
-            ++it;
+            printf("Failed to create hash table %d\n", i);
+            return;
+        }
+    }
+    // Get the function pointer for the plugin
+    PF myFunctionPtr = (PF)_PM.getFunction<PF>(pi->filename, pi->funcname);
+    // Create a plugin runtime object
+    std::shared_ptr<PluginRuntime> newPlugin = std::make_shared<PluginRuntime>(
+        pluginid,
+        res[pi->cnt_info.rownum][pi->cnt_info.bucketnum][pi->cnt_info.bucketsize][pi->cnt_info.countersize],
+        hash_table[pi->hash_info.hashnum],
+        myFunctionPtr);
+    // Add to the array of plugins to be deployed
+    _mt[0][coreid].lock();
+    _handlers[coreid].push_back(newPlugin);
+    _mt[0][coreid].unlock();
+}
+
+/**
+ * @brief Deletes a plugin from the specified core.
+ * 
+ * This function deletes a plugin from the specified core. It releases the resources associated with the plugin, including freeing memory and releasing hash tables.
+ * 
+ * @param pluginid The ID of the plugin to be deleted.
+ * @param coreid The ID of the core from which the plugin should be deleted.
+ */
+void deletePlugin(int pluginid, int coreid)
+{
+    // Get plugin information
+    PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
+    // Find and remove the specified plugin from the plugins list
+    for (auto iter = _handlers[coreid].begin(); iter != _handlers[coreid].end(); iter++)
+    {
+        if ((*iter)->id == pluginid)
+        {
+            _mt[0][coreid].lock();
+            // Release resources
+            for (int i = 0; i < pi->cnt_info.rownum; i++)
+            {
+                for (int j = 0; j < pi->cnt_info.bucketnum; j++)
+                {
+                    for (int k = 0; k < pi->cnt_info.bucketsize; k++)
+                    {
+                        free((void*)(*((*iter)->res))[i][j][k]);
+                    }
+                    free((void*)(*((*iter)->res))[i][j]);
+                }
+                free((void*)(*((*iter)->res))[i]);
+            }
+            free((void*)(*iter)->res);
+            (*iter)->res = NULL;
+            // Release hash tables
+            for (int i = 0; i < pi->hash_info.hashnum; i++)
+            {
+                rte_hash_free((*iter)->hash_table[i]);
+                (*iter)->hash_table[i] = NULL;
+            }
+            // Remove from the array of plugins to be deployed
+            _handlers[coreid].erase(iter);
+            _mt[0][coreid].unlock();
+            break;
         }
     }
 }
 
-// 添加插件到指定核心的待部署插件数组
-void addPlugin(std::shared_ptr<PluginInterface> newPlugin, int coreid)
+// Add a flow rule to the specified queue
+int addFlowToQueue(uint16_t port_id, uint16_t rx_q, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask)
 {
-    _mt[0][coreid].lock();
-    _handlers_updated[coreid].push_back(newPlugin);
-    printf("_handlers_updated[%d]'s length = %d\n", coreid, _handlers_updated[coreid].size());
-    _mt[0][coreid].unlock();
-}
-
-// 删除插件
-void deletePlugin(std::shared_ptr<PluginInterface> plugin, int coreid)
-{
-    _mt[0][coreid].lock();
-    // 在 plugins 列表中查找并移除指定的插make件
-    auto it = std::find_if(_handlers_updated[coreid].begin(), _handlers_updated[coreid].end(), [&](const auto &p)
-                           { return p->name == plugin->name; });
-    if (it != _handlers_updated[coreid].end())
+    struct rte_flow_error error;
+    flow_id *flow = generate_ipv4_flow(port_id, rx_q,
+                                       src_ip, src_mask,
+                                       dest_ip, dest_mask, &error);
+    /* >8 End of create flow and the flow rule. */
+    if (!flow)
     {
-        _handlers_updated[coreid].erase(it);
+        printf("Flow can't be created %d message: %s\n",
+               error.type,
+               error.message ? error.message : "(no stated reason)");
+        rte_exit(EXIT_FAILURE, "error in creating flow");
     }
-    _mt[0][coreid].unlock();
+    return flow->id;
 }
 
-// 添加流规则到指定队列
-void addFlowToQueue(uint16_t port_id, uint16_t rx_q, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask)
+// Delete a flow rule from the specified queue
+void deleteFlowFromQueue(int id)
 {
-    struct rte_flow_error error;
-    rte_flow * flow = generate_ipv4_flow(port_id, rx_q,
-				src_ip, src_mask,
-				dest_ip, dest_mask, &error);
-	/* >8 End of create flow and the flow rule. */
-	if (!flow) {
-		printf("Flow can't be created %d message: %s\n",
-			error.type,
-			error.message ? error.message : "(no stated reason)");
-		rte_exit(EXIT_FAILURE, "error in creating flow");
-	}
+    destroy_ipv4_flow_with_id(id);
 }
-
-// 删除指定队列上的流规则
-void deleteFlowQueue(uint16_t port_id,
-		 struct rte_flow *flow)
+// Add a source queue for core to process traffic
+void addQueueToCore(int queueid, int coreid)
 {
-    struct rte_flow_error error;
-    int ret = rte_flow_destroy( port_id,flow,&error);
-    if (ret) {
-		printf("Flow can't be destroyed %d message: %s\n",
-			error.type,
-			error.message ? error.message : "(no stated reason)");
-		rte_exit(EXIT_FAILURE, "error in destroying flow");
-	}
-}
-// 添加核心处理流量的来源队列
-void addQueueToCore(int queueid, int coreid){
     _mt[1][coreid].lock();
     _core_queues_updated[coreid].push_back(queueid);
     _mt[1][coreid].unlock();
 }
 
-// 删除核心处理流量的来源队列
-void deleteQueueToCore(int queueid, int coreid){
+// Remove a source queue from core to process traffic
+void deleteQueueFromCore(int queueid, int coreid)
+{
     _mt[1][coreid].lock();
     auto it = std::find_if(_core_queues_updated[coreid].begin(), _core_queues_updated[coreid].end(), [&](const auto &p)
                            { return p == queueid; });
@@ -221,7 +329,5 @@ void deleteQueueToCore(int queueid, int coreid){
     }
     _mt[1][coreid].unlock();
 }
-
-
 
 #endif
