@@ -12,7 +12,6 @@ PluginManager::~PluginManager(){
 int PluginManager::loadPlugin(PluginInfo info){
     PluginHandle handle = NULL;
     char filename[100];
-    sprintf(filename, "%s%s", PLUGIN_DIR ,info.filename);
     handle = dlopen(filename, RTLD_LAZY);
 
     if (handle == NULL)
@@ -21,6 +20,7 @@ int PluginManager::loadPlugin(PluginInfo info){
     info.id = id;
     PluginHandleInfo handleinfo={info, handle};
     plugins_.push_back(std::move(handleinfo));
+    printf("load plugin %s\n", info.filename);
     return id;
 }
 
@@ -32,7 +32,6 @@ bool PluginManager::unloadPlugin(const char filename[]){
             return true;
         }
     }
-
     return false;
 }
 

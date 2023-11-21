@@ -10,4 +10,4 @@ client.o: $(SRCS-y)
 	$(CC) $(CFLAGS) -c $(SRCS-y)
 
 clean:
-	rm -f client client.o
+	rm -f client client.o client.h.gch

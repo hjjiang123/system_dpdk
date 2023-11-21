@@ -19,6 +19,7 @@
  * @return 0 if the command was sent successfully, -1 otherwise.
  */
 int sendCommand(Command cmd) {
+    printf("command type:%d",cmd.type);
     int sock = 0, valread;
     struct sockaddr_in serv_addr;
     char buffer[SOCKET_BUFFER_SIZE] = {0};
@@ -44,9 +45,8 @@ int sendCommand(Command cmd) {
     }
     
     // 读取用户输入的指令并发送到服务端
-    serializeCommand(&cmd, buffer);
-    send(sock, buffer, strlen(buffer), 0);
-    
+    send(sock, &cmd, strlen(buffer), 0);
+    printf("Command sent\n");
     // 关闭客户端的Socket文件描述符
     close(sock);
     return 0;

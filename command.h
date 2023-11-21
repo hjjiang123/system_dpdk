@@ -1,23 +1,23 @@
 #ifndef COMMAND_H
 #define COMMAND_H
-
-#include <rte_flow.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "config.h"
 #include "plugin.h"
 
 /**
  * @brief Enumeration of command types.
  */
-typedef enum {
-    REGISTER_PLUGIN,   
-    UNREGISTE_RPLUGIN,   
-    ADD_PLUGIN,  
-    DELETE_PLUGIN,
-    ADD_FLOW_TO_QUEUE, 
-    DELETE_FLOW_FROM_QUEUE,
-    ADD_QUEUE_TO_CORE,     
-    DELETE_QUEUE_FROM_CORE,
-} CommandType;
+#define REGISTER_PLUGIN 0
+#define UNREGISTE_RPLUGIN 1 
+#define ADD_PLUGIN 2
+#define DELETE_PLUGIN 3
+#define ADD_FLOW_TO_QUEUE 4
+#define DELETE_FLOW_FROM_QUEUE 5
+#define ADD_QUEUE_TO_CORE 6
+#define DELETE_QUEUE_FROM_CORE 7
+
 
 /**
  * @brief Represents a command structure.
@@ -26,7 +26,7 @@ typedef enum {
  * Each command type has a specific set of arguments defined in the union.
  */
 typedef struct {
-    CommandType type; /**< The type of the command. */
+    int type; /**< The type of the command. */
     union {
         struct PluginInfo reg_plugin_arg; /**< Arguments for registering a plugin. */
         struct {
@@ -41,15 +41,15 @@ typedef struct {
             int coreid;
         } del_plugin_arg; /**< Arguments for deleting a plugin. */
         struct {
-            uint16_t port_id;
-            uint16_t rx_q;
-            uint32_t src_ip;
-            uint32_t src_mask;
-            uint32_t dest_ip;
-            uint32_t dest_mask;
+            unsigned short port_id;
+            unsigned short rx_q;
+            unsigned int src_ip;
+            unsigned int src_mask;
+            unsigned int dest_ip;
+            unsigned int dest_mask;
         } add_flow_arg; /**< Arguments for adding a flow. */
         struct {
-            uint16_t id;
+            unsigned short id;
         } del_flow_arg; /**< Arguments for deleting a flow. */
         struct {
             int queueid;
@@ -69,37 +69,38 @@ typedef struct {
  * @param command The Command object to be serialized.
  * @param buffer The buffer to store the serialized data.
  */
-void serializeCommand(const Command* command, char* buffer) {
-    memcpy(buffer, &(command->type), sizeof(CommandType));
+void serializeCommand(Command* command, char buffer[]) {
+    memcpy(buffer, &(command->type), sizeof(int));
     switch (command->type) {
         case REGISTER_PLUGIN:
-            memcpy(buffer + sizeof(CommandType), &(command->args.reg_plugin_arg), sizeof(command->args.reg_plugin_arg));
+            memcpy(buffer + sizeof(int), &(command->args.reg_plugin_arg), sizeof(command->args.reg_plugin_arg));
             break;
         case UNREGISTE_RPLUGIN:
-            memcpy(buffer + sizeof(CommandType), &(command->args.unreg_plugin_arg), sizeof(command->args.unreg_plugin_arg));
+            memcpy(buffer + sizeof(int), &(command->args.unreg_plugin_arg), sizeof(command->args.unreg_plugin_arg));
             break;
         case ADD_PLUGIN:
-            memcpy(buffer + sizeof(CommandType), &(command->args.add_plugin_arg), sizeof(command->args.add_plugin_arg));
+            memcpy(buffer + sizeof(int), &(command->args.add_plugin_arg), sizeof(command->args.add_plugin_arg));
             break;
         case DELETE_PLUGIN:
-            memcpy(buffer + sizeof(CommandType), &(command->args.del_plugin_arg), sizeof(command->args.del_plugin_arg));
+            memcpy(buffer + sizeof(int), &(command->args.del_plugin_arg), sizeof(command->args.del_plugin_arg));
             break;
         case ADD_FLOW_TO_QUEUE:
-            memcpy(buffer + sizeof(CommandType), &(command->args.add_flow_arg), sizeof(command->args.add_flow_arg));
+            memcpy(buffer + sizeof(int), &(command->args.add_flow_arg), sizeof(command->args.add_flow_arg));
             break;
         case DELETE_FLOW_FROM_QUEUE:
-            memcpy(buffer + sizeof(CommandType), &(command->args.del_flow_arg), sizeof(command->args.del_flow_arg));
+            memcpy(buffer + sizeof(int), &(command->args.del_flow_arg), sizeof(command->args.del_flow_arg));
             break;
         case ADD_QUEUE_TO_CORE:
-            memcpy(buffer + sizeof(CommandType), &(command->args.add_queue_arg), sizeof(command->args.add_queue_arg));
+            memcpy(buffer + sizeof(int), &(command->args.add_queue_arg), sizeof(command->args.add_queue_arg));
             break;
         case DELETE_QUEUE_FROM_CORE:
-            memcpy(buffer + sizeof(CommandType), &(command->args.del_queue_arg), sizeof(command->args.del_queue_arg));
+            memcpy(buffer + sizeof(int), &(command->args.del_queue_arg), sizeof(command->args.del_queue_arg));
             break;
         default:
             fprintf(stderr, "Invalid command type\n");
             exit(EXIT_FAILURE);
     }
+    printf("buffer %s\n",buffer);
 }
 
 
@@ -113,31 +114,31 @@ void serializeCommand(const Command* command, char* buffer) {
  * @param command Pointer to the Command structure to populate.
  */
 void deserializeCommand(const char* buffer, Command* command) {
-    memcpy(&(command->type), buffer, sizeof(CommandType));
+    memcpy(&(command->type), buffer, sizeof(int));
     switch (command->type) {
         case REGISTER_PLUGIN:
-            memcpy(&(command->args.reg_plugin_arg), buffer + sizeof(CommandType), sizeof(command->args.reg_plugin_arg));
+            memcpy(&(command->args.reg_plugin_arg), buffer + sizeof(int), sizeof(command->args.reg_plugin_arg));
             break;
         case UNREGISTE_RPLUGIN:
-            memcpy(&(command->args.unreg_plugin_arg), buffer + sizeof(CommandType), sizeof(command->args.unreg_plugin_arg));
+            memcpy(&(command->args.unreg_plugin_arg), buffer + sizeof(int), sizeof(command->args.unreg_plugin_arg));
             break;
         case ADD_PLUGIN:
-            memcpy(&(command->args.add_plugin_arg), buffer + sizeof(CommandType), sizeof(command->args.add_plugin_arg));
+            memcpy(&(command->args.add_plugin_arg), buffer + sizeof(int), sizeof(command->args.add_plugin_arg));
             break;
         case DELETE_PLUGIN:
-            memcpy(&(command->args.del_plugin_arg), buffer + sizeof(CommandType), sizeof(command->args.del_plugin_arg));
+            memcpy(&(command->args.del_plugin_arg), buffer + sizeof(int), sizeof(command->args.del_plugin_arg));
             break;
         case ADD_FLOW_TO_QUEUE:
-            memcpy(&(command->args.add_flow_arg), buffer + sizeof(CommandType), sizeof(command->args.add_flow_arg));
+            memcpy(&(command->args.add_flow_arg), buffer + sizeof(int), sizeof(command->args.add_flow_arg));
             break;
         case DELETE_FLOW_FROM_QUEUE:
-            memcpy(&(command->args.del_flow_arg), buffer + sizeof(CommandType), sizeof(command->args.del_flow_arg));
+            memcpy(&(command->args.del_flow_arg), buffer + sizeof(int), sizeof(command->args.del_flow_arg));
             break;
         case ADD_QUEUE_TO_CORE:
-            memcpy(&(command->args.del_queue_arg), buffer + sizeof(CommandType), sizeof(command->args.del_queue_arg));
+            memcpy(&(command->args.del_queue_arg), buffer + sizeof(int), sizeof(command->args.del_queue_arg));
             break;
         case DELETE_QUEUE_FROM_CORE:
-            memcpy(&(command->args.del_queue_arg), buffer + sizeof(CommandType), sizeof(command->args.del_queue_arg));
+            memcpy(&(command->args.del_queue_arg), buffer + sizeof(int), sizeof(command->args.del_queue_arg));
             break;
         default:
             fprintf(stderr, "Invalid command type\n");

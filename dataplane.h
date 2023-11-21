@@ -55,6 +55,7 @@ std::vector<std::vector<int>> _core_queues_updated(MAX_CORE_NUMS); // Queues lis
  */
 int registerPlugin(PluginInfo plugin)
 {
+    printf("registerPlugin\n");
     return _PM.loadPlugin(plugin);
 }
 
@@ -67,6 +68,7 @@ int registerPlugin(PluginInfo plugin)
  */
 void unregisterPlugin(PluginInfo plugin)
 {
+    
     _PM.unloadPlugin(plugin.filename);
 }
 
@@ -79,6 +81,7 @@ void unregisterPlugin(PluginInfo plugin)
  */
 void unregisterPlugin(int pluginid)
 {
+    printf("unregisterPlugin\n");
     PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
     _PM.unloadPlugin(pi->filename);
 }
@@ -95,6 +98,7 @@ void unregisterPlugin(int pluginid)
  */
 void addPlugin(int pluginid, int coreid)
 {
+    printf("addPlugin\n");
     // Get plugin information
     PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
     // Allocate resources for the plugin
@@ -157,6 +161,7 @@ void addPlugin(int pluginid, int coreid)
  */
 void deletePlugin(int pluginid, int coreid)
 {
+    printf("deletePlugin\n");
     // Get plugin information
     PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
     // Find and remove the specified plugin from the plugins list
@@ -195,6 +200,7 @@ void deletePlugin(int pluginid, int coreid)
 // Add a flow rule to the specified queue
 int addFlowToQueue(uint16_t port_id, uint16_t rx_q, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask)
 {
+    printf("addFlowToQueue\n");
     struct rte_flow_error error;
     flow_id *flow = generate_ipv4_flow(port_id, rx_q,
                                        src_ip, src_mask,
@@ -213,11 +219,13 @@ int addFlowToQueue(uint16_t port_id, uint16_t rx_q, uint32_t src_ip, uint32_t sr
 // Delete a flow rule from the specified queue
 void deleteFlowFromQueue(int id)
 {
+    printf("deleteFlowFromQueue\n");
     destroy_ipv4_flow_with_id(id);
 }
 // Add a source queue for core to process traffic
 void addQueueToCore(int queueid, int coreid)
 {
+    printf("addQueueToCore\n");
     _mt[1][coreid].lock();
     _core_queues_updated[coreid].push_back(queueid);
     _mt[1][coreid].unlock();
@@ -226,6 +234,7 @@ void addQueueToCore(int queueid, int coreid)
 // Remove a source queue from core to process traffic
 void deleteQueueFromCore(int queueid, int coreid)
 {
+    printf("deleteQueueFromCore\n");
     _mt[1][coreid].lock();
     auto it = std::find_if(_core_queues_updated[coreid].begin(), _core_queues_updated[coreid].end(), [&](const auto &p)
                            { return p == queueid; });
@@ -237,6 +246,7 @@ void deleteQueueFromCore(int queueid, int coreid)
 }
 
 void push_Command(Command c){
+    printf("push_Command\n");
     int lcore_id;
     if(c.type==ADD_PLUGIN){
         lcore_id = c.args.add_plugin_arg.coreid;

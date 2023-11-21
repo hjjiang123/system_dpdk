@@ -38,6 +38,7 @@ pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
  */
 void *executeCommands(void *arg)
 {
+    printf("executeCommands\n");
     while (true)
     {
         pthread_mutex_lock(&mutex);
@@ -87,6 +88,7 @@ void *executeCommands(void *arg)
             default:
                 break;
         }
+        printf("Command executed\n");
 
     }
     return NULL;
@@ -100,6 +102,7 @@ void *executeCommands(void *arg)
  */
 void* listenCommand(void *arg)
 {
+    printf("listenCommand\n");
     int server_fd, new_socket, valread;
     struct sockaddr_in address;
     int opt = 1;
@@ -133,6 +136,7 @@ void* listenCommand(void *arg)
         perror("listen");
         exit(EXIT_FAILURE);
     }
+    printf("Listening on port %d\n", SOCKET_PORT);
     // 接受并处理客户端连接
     while (1)
     {
@@ -141,10 +145,12 @@ void* listenCommand(void *arg)
             perror("accept");
             exit(EXIT_FAILURE);
         }
+        printf("Connection accepted\n");
         // 读取客户端指令
         if ((valread = read(new_socket, buffer, SOCKET_BUFFER_SIZE)) > 0)
         {
             // 添加指令到队列
+            printf("Command received\n");
             pthread_mutex_lock(&mutex);
             if ((rear + 1) % SOCKET_QUEUE_SIZE == front)
             {
@@ -152,12 +158,16 @@ void* listenCommand(void *arg)
                 front = (front + 1) % SOCKET_QUEUE_SIZE;
             }
             Command temp_cmd;
-            deserializeCommand(buffer,&temp_cmd);
+            memcpy(&temp_cmd, buffer, sizeof(Command));
             commandQueue[rear] = temp_cmd;
             rear = (rear + 1) % SOCKET_QUEUE_SIZE;
+            
             // 发送条件变量信号，唤醒等待的线程
             pthread_cond_signal(&cond);
             pthread_mutex_unlock(&mutex);
+            printf("Command processed\n");
+        }else{
+            printf("Command error %d\n",valread);
         }
         // 关闭客户端的Socket文件描述符
         close(new_socket);
