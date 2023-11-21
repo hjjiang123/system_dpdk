@@ -69,32 +69,32 @@ typedef struct {
  * @param command The Command object to be serialized.
  * @param buffer The buffer to store the serialized data.
  */
-void serializeCommand(Command* command, char buffer[]) {
-    memcpy(buffer, &(command->type), sizeof(int));
-    switch (command->type) {
+void serializeCommand(Command command, char buffer[]) {
+    memcpy(buffer, &(command.type), sizeof(int));
+    switch (command.type) {
         case REGISTER_PLUGIN:
-            memcpy(buffer + sizeof(int), &(command->args.reg_plugin_arg), sizeof(command->args.reg_plugin_arg));
+            memcpy(buffer + sizeof(int), &(command.args.reg_plugin_arg), sizeof(command.args.reg_plugin_arg));
             break;
         case UNREGISTE_RPLUGIN:
-            memcpy(buffer + sizeof(int), &(command->args.unreg_plugin_arg), sizeof(command->args.unreg_plugin_arg));
+            memcpy(buffer + sizeof(int), &(command.args.unreg_plugin_arg), sizeof(command.args.unreg_plugin_arg));
             break;
         case ADD_PLUGIN:
-            memcpy(buffer + sizeof(int), &(command->args.add_plugin_arg), sizeof(command->args.add_plugin_arg));
+            memcpy(buffer + sizeof(int), &(command.args.add_plugin_arg), sizeof(command.args.add_plugin_arg));
             break;
         case DELETE_PLUGIN:
-            memcpy(buffer + sizeof(int), &(command->args.del_plugin_arg), sizeof(command->args.del_plugin_arg));
+            memcpy(buffer + sizeof(int), &(command.args.del_plugin_arg), sizeof(command.args.del_plugin_arg));
             break;
         case ADD_FLOW_TO_QUEUE:
-            memcpy(buffer + sizeof(int), &(command->args.add_flow_arg), sizeof(command->args.add_flow_arg));
+            memcpy(buffer + sizeof(int), &(command.args.add_flow_arg), sizeof(command.args.add_flow_arg));
             break;
         case DELETE_FLOW_FROM_QUEUE:
-            memcpy(buffer + sizeof(int), &(command->args.del_flow_arg), sizeof(command->args.del_flow_arg));
+            memcpy(buffer + sizeof(int), &(command.args.del_flow_arg), sizeof(command.args.del_flow_arg));
             break;
         case ADD_QUEUE_TO_CORE:
-            memcpy(buffer + sizeof(int), &(command->args.add_queue_arg), sizeof(command->args.add_queue_arg));
+            memcpy(buffer + sizeof(int), &(command.args.add_queue_arg), sizeof(command.args.add_queue_arg));
             break;
         case DELETE_QUEUE_FROM_CORE:
-            memcpy(buffer + sizeof(int), &(command->args.del_queue_arg), sizeof(command->args.del_queue_arg));
+            memcpy(buffer + sizeof(int), &(command.args.del_queue_arg), sizeof(command.args.del_queue_arg));
             break;
         default:
             fprintf(stderr, "Invalid command type\n");
