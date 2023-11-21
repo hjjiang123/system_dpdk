@@ -25,6 +25,17 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 // 线程函数，执行指令队列中的指令
+/**
+ * @brief Executes commands from a command queue in a separate thread.
+ * 
+ * This function is responsible for executing commands from a command queue in a separate thread.
+ * It continuously checks if the command queue is empty and waits for a condition variable if it is.
+ * Once a command is available in the queue, it retrieves the command, updates the queue index, and unlocks the mutex.
+ * It then switches on the type of the command and performs the corresponding action.
+ * 
+ * @param arg A pointer to the argument passed to the thread function (not used in this case).
+ * @return void* Always returns NULL.
+ */
 void *executeCommands(void *arg)
 {
     while (true)
@@ -81,6 +92,12 @@ void *executeCommands(void *arg)
     return NULL;
 }
 
+/**
+ * @brief This function listens for incoming commands from clients and processes them.
+ * 
+ * @param arg The argument passed to the function (not used in this case).
+ * @return void* The return value is not used in this case.
+ */
 void* listenCommand(void *arg)
 {
     int server_fd, new_socket, valread;
@@ -148,6 +165,13 @@ void* listenCommand(void *arg)
     // return NULL;
 }
 
+/**
+ * @brief Runs the server.
+ * 
+ * This function creates two threads to execute commands and listen for commands.
+ * 
+ * @return void
+ */
 int runserver()
 {
     // 创建执行指令的线程
@@ -162,5 +186,7 @@ int runserver()
         perror("pthread_create 2");
         exit(EXIT_FAILURE);
     }
+    printf("runserver\n");
+    return 0;
 }
 #endif

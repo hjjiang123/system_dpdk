@@ -1,13 +1,5 @@
 #ifndef PLUGIN_H
 #define PLUGIN_H
-#include <iostream>
-#include <mutex>
-#include <unistd.h>
-#include <thread>
-#include <vector>
-#include <string>
-#include <memory>
-#include "capture.h"
 
 typedef char Byte;
 
@@ -31,8 +23,8 @@ struct CounterInfo {
  */
 struct HashInfo {
     int hashnum;
-    int key_len;
-    int entries;
+    unsigned int key_len;
+    unsigned int entries;
 };
 
 
@@ -53,13 +45,12 @@ struct PluginInfo{
  *
  * This typedef defines a function pointer type named PF. The function takes a pointer to a rte_vlan_hdr structure, a pointer to a rte_mbuf structure, a pointer to a rte_hash structure pointer, and a pointer to a Byte**** variable. It returns an integer value.
  *
- * @param vlan_hdr A pointer to a rte_vlan_hdr structure.
  * @param mbuf A pointer to a rte_mbuf structure.
  * @param hash_table A pointer to a rte_hash structure pointer.
  * @param res A pointer to a Byte**** variable.
  * @return An integer value.
  */
-typedef int (*PF)(struct rte_vlan_hdr *, struct rte_mbuf *, struct rte_hash **hash_table, Byte ****res);
+typedef int (*PF)(struct rte_mbuf *, struct rte_hash **hash_table, Byte ****res);
 
 
 /**

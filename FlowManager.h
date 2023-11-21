@@ -5,6 +5,7 @@
  */
 #include <vector>
 #include <rte_flow.h>
+#include <stdlib.h>
 
 #define MAX_PATTERN_NUM		3
 #define MAX_ACTION_NUM		2
@@ -20,19 +21,19 @@ struct flow_id {
 
 std::vector<struct flow_id> flow_list;
 
-struct flow_id *register_flow(int port_id, struct rte_flow *flow)
+struct flow_id *_register_flow(int port_id, struct rte_flow *flow)
 {
 	if(flow == NULL){
 		return NULL;
 	}
-	struct flow_id flow_id;
-	flow_id.id = _flow_id++;
-	flow_id.port_id = port_id;
-	flow_id.flow = flow;
-	flow_list.push_back(std::move(flow_id));
-	return &flow_id;
+	flow_id * fi= (flow_id *)malloc(sizeof(flow_id));;
+	fi->id = _flow_id++;
+	fi->port_id = port_id;
+	fi->flow = flow;
+	flow_list.push_back(*fi);
+	return fi;
 }
-void unregister_flow(struct flow_id *flow_id){
+void _unregister_flow(struct flow_id *flow_id){
 	for (int i = 0; i < flow_list.size(); i++)
 	{
 		if (flow_list[i].flow == flow_id->flow)
@@ -42,7 +43,7 @@ void unregister_flow(struct flow_id *flow_id){
 		}
 	}
 }
-void unregister_flow_with_id(int id){
+void _unregister_flow_with_id(int id){
 	for (int i = 0; i < flow_list.size(); i++)
 	{
 		if (flow_list[i].id == id)
@@ -164,7 +165,7 @@ generate_ipv4_flow(uint16_t port_id, uint16_t rx_q,
 	res = rte_flow_validate(port_id, &attr, pattern, action, error);
 	if (!res)
 		flow = rte_flow_create(port_id, &attr, pattern, action, error);
-		struct flow_id *fi = register_flow(port_id,flow);
+		struct flow_id *fi = _register_flow(port_id,flow);
 	/* >8 End of validation the rule and create it. */
 
 	return fi;
@@ -176,15 +177,14 @@ void destroy_ipv4_flow(struct flow_id *flow_id)
 		return;
 	}
 	struct rte_flow_error error;
-	struct rte_flow *flow = flow_id->flow;
-	int ret = rte_flow_destroy( flow_id->port_id,flow,&error);
+	int ret = rte_flow_destroy( flow_id->port_id,flow_id->flow,&error);
 	if (ret) {
 		printf("Flow can't be destroyed %d message: %s\n",
 			error.type,
 			error.message ? error.message : "(no stated reason)");
 		rte_exit(EXIT_FAILURE, "error in destroying flow");
 	}
-	unregister_flow(flow_id);
+	_unregister_flow(flow_id);
 }
 void destroy_ipv4_flow_with_id(int id){
 	struct flow_id *flow_id = query_flow_id(id);

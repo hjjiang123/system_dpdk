@@ -1,7 +1,7 @@
 // PluginManager.h
 #ifndef PLUGIN_MANAGER_H
 #define PLUGIN_MANAGER_H
-
+#include <stdio.h>
 #include <vector>
 #include <dlfcn.h>
 #include "plugin.h"
@@ -55,7 +55,7 @@ public:
         if (handle == NULL)
             return NULL;
 
-        void* proc = dlsym(handle, functionName.c_str());
+        void* proc = dlsym(handle, functionName);
 
         if (proc == NULL)
             return NULL;
@@ -79,6 +79,7 @@ public:
 private:
     std::vector<PluginHandleInfo> plugins_; // Vector to store loaded plugins
     int _nextId = 1; // Next available plugin ID
+    const char* PLUGIN_DIR = "./plugins/";
 };
 
 #endif

@@ -9,6 +9,15 @@
 #include "command.h"
 
 
+/**
+ * @brief Sends a command to the server.
+ * 
+ * This function creates a socket, connects to the server, and sends a command to it.
+ * The command is serialized and sent as a string over the socket.
+ * 
+ * @param cmd The command to be sent.
+ * @return 0 if the command was sent successfully, -1 otherwise.
+ */
 int sendCommand(Command cmd) {
     int sock = 0, valread;
     struct sockaddr_in serv_addr;

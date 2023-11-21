@@ -2,11 +2,11 @@
 # Copyright(c) 2010-2014 Intel Corporation
 
 # binary name
-APP = capture
+APP = server
 
 # all source are stored in SRCS-y
 # SRCS-y := main.cpp
-SRCS-y := main.cpp plugin.h dataplane.h capture.h
+SRCS-y := main_server.cpp config.h plugin.h capture.h PluginManager.h PluginManager.cpp dataplane.h FlowManager.h command.h server.h
 
 
 PKGCONF ?= pkg-config

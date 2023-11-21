@@ -11,8 +11,9 @@ PluginManager::~PluginManager(){
 
 int PluginManager::loadPlugin(PluginInfo info){
     PluginHandle handle = NULL;
-
-    handle = dlopen(info.filename, RTLD_LAZY);
+    char filename[100];
+    sprintf(filename, "%s%s", PLUGIN_DIR ,info.filename);
+    handle = dlopen(filename, RTLD_LAZY);
 
     if (handle == NULL)
         return -1;

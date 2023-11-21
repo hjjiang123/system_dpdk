@@ -1,11 +1,12 @@
-/* SPDX-License-Identifier: BSD-3-Clause
- * Copyright(c) 2010-2014 Intel Corporation
- */
-
-#include "dataplane.h"
-
-void processTest1(struct rte_vlan_hdr *vlan_hdr, struct rte_mbuf *pkt)
+#include <rte_ethdev.h>
+void process(struct rte_mbuf *pkt, struct rte_hash **hash_table, char ****res)
 {
+	struct rte_vlan_hdr *vlan_hdr;
+	struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
+	if (ntohs(eth_hdr->ether_type) == RTE_ETHER_TYPE_VLAN)
+	{
+		vlan_hdr = rte_pktmbuf_mtod_offset(pkt, struct rte_vlan_hdr *, sizeof(struct rte_ether_hdr));
+	}
 	if (ntohs(vlan_hdr->eth_proto) == RTE_ETHER_TYPE_IPV4)
 	{
 		struct rte_ipv4_hdr *ipv4_hdr = rte_pktmbuf_mtod_offset(pkt, struct rte_ipv4_hdr *, (sizeof(struct rte_ether_hdr) + sizeof(struct rte_vlan_hdr)));
@@ -32,63 +33,4 @@ void processTest1(struct rte_vlan_hdr *vlan_hdr, struct rte_mbuf *pkt)
 	{
 		printf("ipv6\n");
 	}
-}
-
-void processTest2(struct rte_vlan_hdr *vlan_hdr, struct rte_mbuf *pkt)
-{
-	if (ntohs(vlan_hdr->eth_proto) == RTE_ETHER_TYPE_IPV4)
-	{
-		struct rte_ether_hdr *eth_hdr;
-		struct rte_ipv4_hdr *ipv4_hdr;
-		struct rte_tcp_hdr *tcp_hdr;
-
-		eth_hdr = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);
-		ipv4_hdr = (struct rte_ipv4_hdr *)(eth_hdr + 1);
-		tcp_hdr = (struct rte_tcp_hdr *)(ipv4_hdr + 1);
-
-		// 判断是否为TCP报文
-		if (ipv4_hdr->next_proto_id == IPPROTO_TCP)
-		{
-			// 统计满足过滤条件的TCP报文数量
-			printf("Received TCP packet on port %u\n", _port_id);
-		}
-	}
-	else if (ntohs(vlan_hdr->eth_proto) == RTE_ETHER_TYPE_IPV6)
-	{
-		printf("ipv6\n");
-	}
-}
-
-void updateTest()
-{
-	std::shared_ptr<PluginInterface> p1(new PluginInterface{
-		.size = 1024,
-		.id = 2,
-		.name = "testplugin1",
-		.process = processTest1});
-	std::shared_ptr<PluginInterface> p2(new PluginInterface{
-		.size = 2048,
-		.id = 3,
-		.name = "testplugin2",
-		.process = processTest2});
-	sleep(5);
-	addPlugin(p1, 0);
-	sleep(5);
-	addPlugin(p2, 0);
-}
-
-int main(int argc, char **argv)
-{
-
-	init(argc, argv);
-	// configureNumCores(5);
-	int ret = init_port(_port_id);
-	if (ret < 0) {
-		rte_exit(EXIT_FAILURE, "Cannot init port %d\n", _port_id);
-	}
-	updateTest();
-	// std::thread t2(updateTest);
-	run();
-	// t2.join();
-	return 0;
 }

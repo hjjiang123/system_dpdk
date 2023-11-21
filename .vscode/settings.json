@@ -54,6 +54,7 @@
         "map": "cpp",
         "string.h": "c",
         "stdbool.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "flow_blocks.c": "cpp"
     }
 }
