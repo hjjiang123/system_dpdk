@@ -165,7 +165,7 @@ void* listenCommand(void *arg)
             // 发送条件变量信号，唤醒等待的线程
             pthread_cond_signal(&cond);
             pthread_mutex_unlock(&mutex);
-            printf("Command processed\n");
+            printf("Command queued\n");
         }else{
             printf("Command error %d\n",valread);
         }

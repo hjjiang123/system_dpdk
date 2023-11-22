@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <vector>
 #include <dlfcn.h>
+#include <string.h>
 #include "plugin.h"
 
 typedef void* PluginHandle;
@@ -79,7 +80,7 @@ public:
 private:
     std::vector<PluginHandleInfo> plugins_; // Vector to store loaded plugins
     int _nextId = 1; // Next available plugin ID
-    const char* PLUGIN_DIR = "./plugins/";
+    const char* PLUGIN_DIR = "./plugin";
 };
 
 #endif

@@ -23,7 +23,8 @@
 /************************************Global Variables***************************************/
 unsigned int _port_id = 0;          // Index of the NIC to capture
 
-std::map<unsigned int, std::vector<PluginRuntime>> _handlers;  // List of plugins running on each core
+// std::map<unsigned int, std::vector<PluginRuntime>> _handlers;  // List of plugins running on each core
+
 
 struct lcoreCommandQueue {
     Command queue[SOCKET_QUEUE_SIZE];
@@ -56,7 +57,8 @@ std::vector<std::vector<int>> _core_queues_updated(MAX_CORE_NUMS); // Queues lis
 int registerPlugin(PluginInfo plugin)
 {
     printf("registerPlugin\n");
-    return _PM.loadPlugin(plugin);
+    int id = _PM.loadPlugin(plugin);
+    return id;
 }
 
 /**
@@ -68,7 +70,6 @@ int registerPlugin(PluginInfo plugin)
  */
 void unregisterPlugin(PluginInfo plugin)
 {
-    
     _PM.unloadPlugin(plugin.filename);
 }
 
@@ -81,7 +82,7 @@ void unregisterPlugin(PluginInfo plugin)
  */
 void unregisterPlugin(int pluginid)
 {
-    printf("unregisterPlugin\n");
+    printf("unregister Plugin\n");
     PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
     _PM.unloadPlugin(pi->filename);
 }
@@ -147,8 +148,10 @@ void addPlugin(int pluginid, int coreid)
         
     // Add to the array of plugins to be deployed
     _handlers[coreid].push_back(newPlugin);
+    int size = _handlers[coreid].size();
+    printf("_handlers[%d]'s size=%d\n",coreid,size);
+    return;
 }
-
 
 
 /**

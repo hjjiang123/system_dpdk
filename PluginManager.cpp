@@ -11,7 +11,8 @@ PluginManager::~PluginManager(){
 
 int PluginManager::loadPlugin(PluginInfo info){
     PluginHandle handle = NULL;
-    char filename[100];
+    char filename[128];
+    sprintf(filename, "%s/%s",PLUGIN_DIR,info.filename);
     handle = dlopen(filename, RTLD_LAZY);
 
     if (handle == NULL)
@@ -26,7 +27,7 @@ int PluginManager::loadPlugin(PluginInfo info){
 
 bool PluginManager::unloadPlugin(const char filename[]){
     for (auto it = plugins_.begin(); it != plugins_.end(); ++it){
-        if (it->info.filename == filename){
+        if (strcmp(it->info.filename,filename)==0){
             dlclose(it->handle);
             plugins_.erase(it);
             return true;
@@ -37,7 +38,7 @@ bool PluginManager::unloadPlugin(const char filename[]){
 
 PluginHandle PluginManager::getPluginHandle(const char filename[]){
     for (auto& plugin : plugins_){
-        if (plugin.info.filename == filename)
+        if (strcmp(plugin.info.filename,filename)==0)
             return plugin.handle;
     }
     return NULL;
