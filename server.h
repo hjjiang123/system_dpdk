@@ -88,7 +88,6 @@ void *executeCommands(void *arg)
             default:
                 break;
         }
-        printf("Command executed\n");
 
     }
     return NULL;

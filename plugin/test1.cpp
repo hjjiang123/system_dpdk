@@ -1,4 +1,5 @@
 #include <rte_ethdev.h>
+extern "C"{
 void process(struct rte_mbuf *pkt, struct rte_hash **hash_table, char ****res)
 {
 	struct rte_vlan_hdr *vlan_hdr;
@@ -33,4 +34,5 @@ void process(struct rte_mbuf *pkt, struct rte_hash **hash_table, char ****res)
 	{
 		printf("ipv6\n");
 	}
+}
 }

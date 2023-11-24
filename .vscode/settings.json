@@ -55,6 +55,7 @@
         "string.h": "c",
         "stdbool.h": "c",
         "stdio.h": "c",
-        "flow_blocks.c": "cpp"
+        "flow_blocks.c": "cpp",
+        "list": "cpp"
     }
 }

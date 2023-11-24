@@ -13,7 +13,7 @@ void initPluginRuntimeList()
 
 void addPluginRuntime(int pluginid, int coreid)
 {
-    printf("addPlugin\n");
+    // printf("addPluginRuntime\n");
     // Get plugin information
     PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
     // Allocate resources for the plugin
@@ -30,6 +30,7 @@ void addPluginRuntime(int pluginid, int coreid)
             }
         }
     }
+    // printf("addPluginRuntime: %d\n", 0);
     // Create hash tables
     struct rte_hash *hash_table[pi->hash_info.hashnum];
     for (unsigned int i = 0; i < pi->hash_info.hashnum; i++)
@@ -50,18 +51,19 @@ void addPluginRuntime(int pluginid, int coreid)
             return;
         }
     }
+    // printf("addPluginRuntime: %d\n", 1);
     // Get the function pointer for the plugin
     PF myFunctionPtr = (PF)_PM.getFunction<PF>(pi->filename, pi->funcname);
     // Create a plugin runtime object
-    PluginRuntime newPlugin = {
-        pluginid,
-        res,
-        hash_table,
-        myFunctionPtr};
+    PluginRuntime *newPlugin =(PluginRuntime *)malloc(sizeof(PluginRuntime));
+    newPlugin->id = pluginid;
+    newPlugin->res = res;
+    newPlugin->hash_table = hash_table;
+    newPlugin->func = myFunctionPtr;
     PluginRuntimeNode *newNode = (PluginRuntimeNode *)malloc(sizeof(PluginRuntimeNode));
-    newNode->data = newPlugin;
+    newNode->data = *newPlugin;
     newNode->next = NULL;
-
+    // printf("addPluginRuntime: %d\n", 2);
     if (_handlers_[coreid].head == NULL)
     {
         _handlers_[coreid].head = newNode;
@@ -72,6 +74,7 @@ void addPluginRuntime(int pluginid, int coreid)
         _handlers_[coreid].tail->next = newNode;
         _handlers_[coreid].tail = newNode;
     }
+    // printf("addPluginRuntime: %d\n", _handlers_[coreid].tail->data.id);
 }
 
 void deletePluginRuntime(int pluginid, int coreid)
@@ -125,9 +128,11 @@ void deletePluginRuntime(int pluginid, int coreid)
             // Remove from the array of plugins to be deployed
             free(current);
             current = NULL;
+            // printf("deletePluginRuntime\n");
             break;
         }
         previous = current;
         current = current->next;
     }
+    
 }

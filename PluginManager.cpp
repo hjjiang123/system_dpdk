@@ -1,6 +1,8 @@
 // PluginManager.cpp
 #include "PluginManager.h"
 
+PluginManager _PM;
+
 PluginManager::PluginManager(){
 }
 
@@ -19,8 +21,10 @@ int PluginManager::loadPlugin(PluginInfo info){
         return -1;
     int id = _nextId++;
     info.id = id;
-    PluginHandleInfo handleinfo={info, handle};
-    plugins_.push_back(std::move(handleinfo));
+    PluginHandleInfo *handleinfo = new PluginHandleInfo;
+    handleinfo->info = info;
+    handleinfo->handle = handle;
+    plugins_.push_back(*handleinfo);
     printf("load plugin %s\n", info.filename);
     return id;
 }

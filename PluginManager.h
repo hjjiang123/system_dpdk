@@ -12,6 +12,8 @@ struct PluginHandleInfo{
     PluginInfo info;
     PluginHandle handle;
 };
+class PluginManager;
+extern PluginManager _PM;
 
 //类内函数实现均在cpp
 /**
@@ -51,7 +53,7 @@ public:
      * @return Returns the function pointer of type T if successful, or NULL if the function was not found.
      */
     template<typename T> 
-    T getFunction(const char filename[], const char functionName[]="process"){
+    T getFunction(const char filename[], const char functionName[]){
         PluginHandle handle = getPluginHandle(filename);
         if (handle == NULL)
             return NULL;
