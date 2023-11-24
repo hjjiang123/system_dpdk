@@ -18,12 +18,7 @@
 #include <rte_flow.h>
 #include <rte_per_lcore.h>
 #include <rte_string_fns.h>
-
-#define MAX_CORE_NUMS 100
-#define RX_DESC_DEFAULT 512
-#define NUM_MBUFS_DEFAULT 8192
-#define MBUF_CACHE_SIZE 256
-#define DPDKCAP_CAPTURE_BURST_SIZE 256
+#include "config.h"
 
 static const struct rte_eth_conf port_conf_default = {
   .rxmode = {

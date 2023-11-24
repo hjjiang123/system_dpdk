@@ -3,8 +3,8 @@
 /************************************Global Variables***************************************/
 
 
-std::map<unsigned int, lcoreCommandQueue> _command_queues;         // Command queues for each core,to add or delete plugin
 
+lcoreCommandQueue _command_queues[MAX_CORE_NUMS];         // Command queues for each core,to add or delete plugin
 
 int _nextId = 1; // Next available plugin ID
 
@@ -43,8 +43,6 @@ void addPlugin(int pluginid, int coreid)
     addPluginRuntime(pluginid, coreid);
     return;
 }
-
-
 
 void deletePlugin(int pluginid, int coreid)
 {
@@ -93,7 +91,7 @@ void deleteQueueFromCore(int queueid, int coreid)
 }
 
 void push_Command(Command c){
-    printf("push_Command\n");
+    
     int lcore_id;
     if(c.type==ADD_PLUGIN){
         lcore_id = c.args.add_plugin_arg.coreid;
@@ -107,10 +105,11 @@ void push_Command(Command c){
         printf("error CommandType\n");
         return;
     }
+    printf("push_Command %d on core %d\n",c.type,lcore_id);
     _command_queues[lcore_id].mt.lock();
     if((_command_queues[lcore_id].rear+1)%SOCKET_QUEUE_SIZE==_command_queues[lcore_id].front){
         printf("command queue is full\n");
-    }else{
+    }else {
         _command_queues[lcore_id].queue[_command_queues[lcore_id].rear] = c;
         _command_queues[lcore_id].rear = (_command_queues[lcore_id].rear+1)%SOCKET_QUEUE_SIZE;
     }
@@ -188,7 +187,6 @@ int handle_packet_per_core(void *arg)
 void run()
 {
     rte_flow_error error;
-    int master_lcore = rte_lcore_id();
     for (int i = 0; i < _num_cores; i++)
     {
         int ret = rte_eal_remote_launch(handle_packet_per_core, NULL, i);
@@ -206,8 +204,6 @@ void run()
             rte_panic("Cannot wait for lcore %u\n", i);
         }
     }
-
-    // handle_packet_per_core(NULL);
     // rte_eal_mp_wait_lcore();
     rte_flow_flush(_port_id, &error);
     rte_eth_dev_stop(_port_id);

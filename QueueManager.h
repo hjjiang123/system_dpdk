@@ -1,3 +1,5 @@
+#ifndef QUEUEMANAGER_H
+#define QUEUEMANAGER_H
 #include <stdlib.h>
 #include "capture.h"
 struct Queueid {
@@ -8,3 +10,4 @@ struct Queueid {
 extern struct Queueid* core_queues[MAX_CORE_NUMS];
 void addQueue(int queue, int core);
 void removeQueue(int queue, int core);
+#endif

@@ -18,7 +18,7 @@ int main(){
     Command cmd7;
     cmd7.type = ADD_QUEUE_TO_CORE;
     cmd7.args.add_queue_arg.queueid = 0;
-    cmd7.args.del_plugin_arg.coreid = 10;
+    cmd7.args.add_queue_arg.coreid = 10;
     sendCommand(cmd7);
     sleep(1);
     Command cmd3;

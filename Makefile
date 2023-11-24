@@ -6,7 +6,7 @@ APP = server
 
 # all source are stored in SRCS-y
 # SRCS-y := main.cpp
-SRCS-y := main_server.cpp PluginManager.cpp PluginRuntimeManager.cpp dataplane.cpp capture.cpp FlowManager.cpp QueueManager.cpp
+SRCS-y := main_server.cpp PluginManager.cpp PluginRuntimeManager.cpp dataplane.cpp capture.cpp FlowManager.cpp QueueManager.cpp server.cpp
 
 
 PKGCONF ?= pkg-config

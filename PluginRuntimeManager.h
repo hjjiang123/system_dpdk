@@ -3,9 +3,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <rte_flow.h>
+#include <rte_hash.h>
+#include <rte_hash_crc.h>
 #include "plugin.h"
-#include "dataplane.h"
-#define MAX_CORE_NUMS 100
+#include "config.h"
+#include "PluginManager.h"
 
 typedef struct PluginRuntimeNode
 {

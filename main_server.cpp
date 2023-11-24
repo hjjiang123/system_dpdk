@@ -1,8 +1,5 @@
-#include "dataplane.h"
-#include "server.h"
-#include "capture.h"
-
 #include <cstdio>
+#include "server.h"
 
 int main(int argc, char **argv)
 {

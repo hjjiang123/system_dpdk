@@ -1,12 +1,8 @@
 #ifndef DATAPLANE_H
 #define DATAPLANE_H
-#include <iostream>
 #include <mutex>
 #include <unistd.h>
 #include <thread>
-#include <vector>
-#include <map>
-#include <algorithm>
 #include <stdio.h>
 #include <stdlib.h>
 #include <rte_hash.h>
@@ -18,8 +14,6 @@
 #include "QueueManager.h"
 #include "command.h"
 #include "capture.h"
-
-
 
 
 /************************************Global Variables***************************************/
