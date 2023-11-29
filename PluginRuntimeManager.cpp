@@ -33,29 +33,29 @@ void addPluginRuntime(int pluginid, int coreid)
     // printf("addPluginRuntime: %d\n", 0);
     // Create hash tables
     struct rte_hash *hash_table[pi->hash_info.hashnum];
-    for (unsigned int i = 0; i < pi->hash_info.hashnum; i++)
-    {
-        char name[20];
-        sprintf(name, "%d_%d", pi->id, i);
-        struct rte_hash_parameters hash_params = {
-            .name = name,
-            .entries = pi->hash_info.entries,
-            .key_len = pi->hash_info.key_len,
-            .hash_func = rte_hash_crc,
-            .hash_func_init_val = i,
-        };
-        hash_table[i] = rte_hash_create(&hash_params);
-        if (hash_table[i] == NULL)
-        {
-            printf("Failed to create hash table %d\n", i);
-            return;
-        }
-    }
+    // for (unsigned int i = 0; i < pi->hash_info.hashnum; i++)
+    // {
+    //     char name[20];
+    //     sprintf(name, "%d_%d", pi->id, i);
+    //     struct rte_hash_parameters hash_params = {
+    //         .name = name,
+    //         .entries = pi->hash_info.entries,
+    //         .key_len = pi->hash_info.key_len,
+    //         .hash_func = rte_hash_crc,
+    //         .hash_func_init_val = i,
+    //     };
+    //     hash_table[i] = rte_hash_create(&hash_params);
+    //     if (hash_table[i] == NULL)
+    //     {
+    //         printf("Failed to create hash table %d\n", i);
+    //         return;
+    //     }
+    // }
     // printf("addPluginRuntime: %d\n", 1);
     // Get the function pointer for the plugin
     PF myFunctionPtr = (PF)_PM.getFunction<PF>(pi->filename, pi->funcname);
     // Create a plugin runtime object
-    PluginRuntime *newPlugin =(PluginRuntime *)malloc(sizeof(PluginRuntime));
+    PluginRuntime *newPlugin = (PluginRuntime *)malloc(sizeof(PluginRuntime));
     newPlugin->id = pluginid;
     newPlugin->res = res;
     newPlugin->hash_table = hash_table;
@@ -75,6 +75,36 @@ void addPluginRuntime(int pluginid, int coreid)
         _handlers_[coreid].tail = newNode;
     }
     // printf("addPluginRuntime: %d\n", _handlers_[coreid].tail->data.id);
+}
+
+bool popPluginRuntime(int pluginid, int coreid, PluginRuntimeNode *node)
+{
+    node = _handlers_[coreid].head;
+    PluginRuntimeNode *previous = NULL;
+    PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
+    while (node != NULL)
+    {
+        if (node->data.id == pluginid)
+        {
+            if (previous == NULL)
+            {
+                _handlers_[coreid].head = node->next;
+            }
+            else
+            {
+                previous->next = node->next;
+            }
+
+            if (node == _handlers_[coreid].tail)
+            {
+                _handlers_[coreid].tail = previous;
+            }
+            return true;
+        }
+        previous = node;
+        node = node->next;
+    }
+    return false;
 }
 
 void deletePluginRuntime(int pluginid, int coreid)
@@ -107,23 +137,23 @@ void deletePluginRuntime(int pluginid, int coreid)
                     for (int k = 0; k < pi->cnt_info.bucketsize; k++)
                     {
                         free((void *)(current->data.res)[i][j][k]);
-                        current->data.res[i][j][k]= NULL;
+                        current->data.res[i][j][k] = NULL;
                     }
                     free((void *)(current->data.res)[i][j]);
-                    current->data.res[i][j]= NULL;
+                    current->data.res[i][j] = NULL;
                 }
                 free((void *)(current->data.res[i]));
                 current->data.res[i] = NULL;
             }
             free((void *)current->data.res);
             current->data.res = NULL;
-    
+
             // Release hash tables
-            for (int i = 0; i < pi->hash_info.hashnum; i++)
-            {
-                rte_hash_free(current->data.hash_table[i]);
-                current->data.hash_table[i] = NULL;
-            }
+            // for (int i = 0; i < pi->hash_info.hashnum; i++)
+            // {
+            //     rte_hash_free(current->data.hash_table[i]);
+            //     current->data.hash_table[i] = NULL;
+            // }
             current->data.hash_table = NULL;
             // Remove from the array of plugins to be deployed
             free(current);
@@ -134,5 +164,4 @@ void deletePluginRuntime(int pluginid, int coreid)
         previous = current;
         current = current->next;
     }
-    
 }

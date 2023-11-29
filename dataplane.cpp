@@ -89,6 +89,17 @@ void deleteQueueFromCore(int queueid, int coreid)
     printf("deleteQueueFromCore\n");
     removeQueue(queueid, coreid);
 }
+// Dump the result of a running plugin
+void dumpResult(int pluginid, int coreid, char *filename){
+    printf("dumpResult\n");
+    char p[128];
+    sprintf("./res/%s",filename);
+    FILE *file = fopen(filename, "wb");
+    if (file == NULL) {
+        
+    }
+}
+
 
 void push_Command(Command c){
     
@@ -124,10 +135,12 @@ void push_Command(Command c){
 int handle_packet_per_core(void *arg)
 {
     unsigned int lcore_id = rte_lcore_id();
-    std::cout << "startup lcore " << lcore_id << std::endl;
+    // std::cout << "startup lcore " << lcore_id << std::endl;
     struct rte_mbuf *mbufs[DPDKCAP_CAPTURE_BURST_SIZE];
     int record = 0;
+    // int pkt_num = 0;
     // Receive and process packets
+    // float um = 100; //等待的微秒数
     while (1)
     {
         struct Queueid* temp = core_queues[lcore_id];
@@ -140,13 +153,16 @@ int handle_packet_per_core(void *arg)
                 {
                     current->data.func(mbufs[i], current->data.hash_table, current->data.res);
                     current = current->next;
-                    printf("current is not null\n");
+                    // printf("current is not null\n");
                 }
                 rte_pktmbuf_free(mbufs[i]);
             }
 
+            // pkt_num = pkt_num<nb_rx ? nb_rx:pkt_num;
+            // printf("pkt_recv: %d",nb_rx);
             temp = temp->next;
         }
+        
         // printf("record=%d\n",record);
         if (record++ == 10000000)
         {
@@ -165,7 +181,7 @@ int handle_packet_per_core(void *arg)
                         break;
                     case ADD_QUEUE_TO_CORE:
                         addQueueToCore(_command_queues[lcore_id].queue[k].args.add_queue_arg.queueid,
-                         _command_queues[lcore_id].queue[k].args.add_queue_arg.coreid);
+                        _command_queues[lcore_id].queue[k].args.add_queue_arg.coreid);
                         break;
                     case DELETE_QUEUE_FROM_CORE:
                         deleteQueueFromCore(_command_queues[lcore_id].queue[k].args.del_queue_arg.queueid,
@@ -180,6 +196,21 @@ int handle_packet_per_core(void *arg)
             _command_queues[lcore_id].mt.unlock();
             record = 0;
         }
+        if (record++ == 100000000){
+            
+        }
+        // um = um*5/4 - um*pkt_num/32;
+        // if(um==0){
+        //     printf("%d record=%d,pkt_recv: %d,um:%f\n",lcore_id,record,pkt_num,um);
+        //     exit(1);
+        // }
+        // if(lcore_id==10){
+        //     printf("%d record=%d,pkt_recv: %d,um:%f\n",lcore_id,record,pkt_num,um);
+        // }
+        // um = um>10000?10000:um;
+        // pkt_num = 0;
+        // rte_delay_us((unsigned int)um);
+        rte_pause();
     }
 }
 

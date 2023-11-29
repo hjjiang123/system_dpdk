@@ -1,5 +1,5 @@
 #!/bin/bash
-g++ -shared -fPIC test1.cpp \
+g++ -shared -fPIC count_traffic.cpp \
 	-include rte_config.h -march=native \
 	-I/usr/local/include \
 	-I/usr/include/libnl3 -DALLOW_EXPERIMENTAL_API \
@@ -58,4 +58,4 @@ g++ -shared -fPIC test1.cpp \
 	-lrte_eal \
 	-lrte_telemetry \
 	-lrte_kvargs \
-	-o test1.so
+	-o count_traffic.so

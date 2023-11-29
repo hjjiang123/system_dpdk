@@ -50,6 +50,19 @@ void initPluginRuntimeList();
 void addPluginRuntime(int pluginid, int coreid);
 
 
+
+/**
+ * @brief Pop a PluginRuntimeNode from the specified plugin and core.
+ *
+ * This function pops a PluginRuntimeNode from the plugin and core specified by the given pluginid and coreid.
+ *
+ * @param pluginid The ID of the plugin.
+ * @param coreid The ID of the core.
+ * @param node Pointer to the PluginRuntimeNode object to store the popped node.
+ * @return true if a node was successfully popped, false otherwise.
+ */
+bool popPluginRuntime(int pluginid, int coreid, PluginRuntimeNode *node);
+
 /**
  * @brief Deletes a plugin runtime from the PluginRuntimeManager.
  * 
