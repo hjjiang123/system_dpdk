@@ -16,16 +16,16 @@ struct CounterInfo {
 };
 
 
-/**
- * @brief Structure representing hash information.
- * 
- * This structure contains the number of hashes, the original range, and the hash range.
- */
-struct HashInfo {
-    int hashnum;
-    unsigned int key_len;
-    unsigned int entries;
-};
+// /**
+//  * @brief Structure representing hash information.
+//  * 
+//  * This structure contains the number of hashes, the original range, and the hash range.
+//  */
+// struct HashInfo {
+//     int hashnum;
+//     unsigned int key_len;
+//     unsigned int entries;
+// };
 
 
 /**
@@ -34,7 +34,7 @@ struct HashInfo {
 struct PluginInfo{
     int id;  /**< Plugin identifier */
     CounterInfo cnt_info;  /**< Counter information */
-    HashInfo hash_info;  /**< Hash information */
+    // HashInfo hash_info;  /**< Hash information */
     char funcname[30];  /**< Plugin function */
     char filename[100];  /**< Plugin filename */
 };
@@ -46,11 +46,10 @@ struct PluginInfo{
  * This typedef defines a function pointer type named PF. The function takes a pointer to a rte_vlan_hdr structure, a pointer to a rte_mbuf structure, a pointer to a rte_hash structure pointer, and a pointer to a Byte**** variable. It returns an integer value.
  *
  * @param mbuf A pointer to a rte_mbuf structure.
- * @param hash_table A pointer to a rte_hash structure pointer.
  * @param res A pointer to a Byte**** variable.
  * @return An integer value.
  */
-typedef int (*PF)(struct rte_mbuf *, struct rte_hash **hash_table, Byte ****res);
+typedef int (*PF)(struct rte_mbuf *, Byte ****res);
 
 
 /**
@@ -65,7 +64,7 @@ typedef int (*PF)(struct rte_mbuf *, struct rte_hash **hash_table, Byte ****res)
 struct PluginRuntime{
     int id; 
     Byte ****res; 
-    rte_hash **hash_table; 
+    // rte_hash **hash_table; 
     PF func; 
 };
 

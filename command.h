@@ -17,7 +17,7 @@
 #define DELETE_FLOW_FROM_QUEUE 5
 #define ADD_QUEUE_TO_CORE 6
 #define DELETE_QUEUE_FROM_CORE 7
-
+#define DUMP_PLUGIN_RESULT 8
 
 /**
  * @brief Represents a command structure.
@@ -59,6 +59,11 @@ typedef struct {
             int queueid;
             int coreid;
         } del_queue_arg; /**< Arguments for deleting a queue. */
+        struct {
+            int pluginid;
+            int coreid;
+            char filename[100];
+        } dump_result_arg; /**< Arguments for dumping the result of a plugin. */
     } args; /**< The arguments of the command. */
 } Command;
 

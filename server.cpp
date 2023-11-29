@@ -6,8 +6,8 @@
 
 // 全局变量，指令队列和队列索引
 Command commandQueue[SOCKET_QUEUE_SIZE];
-int front = 0;
-int rear = 0;
+int server_front = 0;
+int server_rear = 0;
 
 // 互斥锁和条件变量
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -32,15 +32,15 @@ void *executeCommands(void *arg)
     {
         pthread_mutex_lock(&mutex);
         // 检查指令队列是否为空
-        while (front == rear)
+        while (server_front == server_rear)
         {
             // 指令队列为空，等待条件变量
             pthread_cond_wait(&cond, &mutex);
         }
         // 取出队列中的指令
-        Command cur_cmd = commandQueue[front];
+        Command cur_cmd = commandQueue[server_front];
         // 更新队列索引
-        front = (front + 1) % SOCKET_QUEUE_SIZE;
+        server_front = (server_front + 1) % SOCKET_QUEUE_SIZE;
         pthread_mutex_unlock(&mutex);
         switch(cur_cmd.type){
             case REGISTER_PLUGIN:
@@ -72,6 +72,9 @@ void *executeCommands(void *arg)
                 push_Command(cur_cmd);
                 break;
             case DELETE_QUEUE_FROM_CORE:
+                push_Command(cur_cmd);
+                break;
+            case DUMP_PLUGIN_RESULT:
                 push_Command(cur_cmd);
                 break;
             default:
@@ -140,15 +143,15 @@ void* listenCommand(void *arg)
             // 添加指令到队列
             // printf("Command received\n");
             pthread_mutex_lock(&mutex);
-            if ((rear + 1) % SOCKET_QUEUE_SIZE == front)
+            if ((server_rear + 1) % SOCKET_QUEUE_SIZE == server_front)
             {
                 // 队列已满，丢弃最早的指令
-                front = (front + 1) % SOCKET_QUEUE_SIZE;
+                server_front = (server_front + 1) % SOCKET_QUEUE_SIZE;
             }
             Command temp_cmd;
             memcpy(&temp_cmd, buffer, sizeof(Command));
-            commandQueue[rear] = temp_cmd;
-            rear = (rear + 1) % SOCKET_QUEUE_SIZE;
+            commandQueue[server_rear] = temp_cmd;
+            server_rear = (server_rear + 1) % SOCKET_QUEUE_SIZE;
             
             // 发送条件变量信号，唤醒等待的线程
             pthread_cond_signal(&cond);

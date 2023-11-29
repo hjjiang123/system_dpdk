@@ -22,10 +22,23 @@ typedef struct PluginRuntimeList
     PluginRuntimeNode *tail;
 } PluginRuntimeList;
 
+typedef struct {
+    PluginRuntimeNode *node;
+    char *filename;
+} PluginRuntimeDumps;
 
 extern PluginRuntimeList _handlers_[MAX_CORE_NUMS]; // List of plugins running on each core
 
 
+/**
+ * @brief Enqueues a PluginRuntimeDumps node for processing.
+ *
+ * This function adds a PluginRuntimeDumps node to the processing queue.
+ *
+ * @param nodedump The PluginRuntimeDumps node to enqueue.
+ * @return True if the node was successfully enqueued, false otherwise.
+ */
+bool enqueuePluginRuntimeNode(PluginRuntimeDumps *nodedump);
 
 /**
  * @brief Initializes the plugin runtime list.
@@ -74,7 +87,18 @@ bool popPluginRuntime(int pluginid, int coreid, PluginRuntimeNode *node);
  */
 void deletePluginRuntime(int pluginid, int coreid);
 
-
+/**
+ * @brief Dump the PluginRuntimeNode information to a file.
+ * 
+ * This function dumps the information of a PluginRuntimeNode to a file specified by the filename parameter.
+ * The information includes the plugin ID, core ID, and other relevant data of the node.
+ * 
+ * @param pluginid The ID of the plugin.
+ * @param coreid The ID of the core.
+ * @param filename The name of the file to dump the information to.
+ * @param node The PluginRuntimeNode to be dumped.
+ */
+void dumpPluginRuntimeNode(int pluginid, char *filename, PluginRuntimeNode *node);
 
 // PluginRuntimeNode *findPluginRuntime(int pluginid, int coreid)
 // {

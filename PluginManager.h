@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <vector>
 #include <dlfcn.h>
+#include <pthread.h>
 #include <string.h>
 #include "plugin.h"
 

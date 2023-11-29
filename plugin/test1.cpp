@@ -1,6 +1,6 @@
 #include <rte_ethdev.h>
 extern "C"{
-void process(struct rte_mbuf *pkt, struct rte_hash **hash_table, char ****res)
+void process(struct rte_mbuf *pkt,  char ****res)
 {
 	struct rte_vlan_hdr *vlan_hdr;
 	struct rte_ether_hdr *eth_hdr = rte_pktmbuf_mtod(pkt, struct rte_ether_hdr *);

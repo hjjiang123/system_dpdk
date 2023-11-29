@@ -5,6 +5,7 @@
 
 
 lcoreCommandQueue _command_queues[MAX_CORE_NUMS];         // Command queues for each core,to add or delete plugin
+PluginRuntimeNode *node[MAX_DUMP_NUMS]; // Plugin runtime nodes for dumping results
 
 int _nextId = 1; // Next available plugin ID
 
@@ -91,13 +92,7 @@ void deleteQueueFromCore(int queueid, int coreid)
 }
 // Dump the result of a running plugin
 void dumpResult(int pluginid, int coreid, char *filename){
-    printf("dumpResult\n");
-    char p[128];
-    sprintf("./res/%s",filename);
-    FILE *file = fopen(filename, "wb");
-    if (file == NULL) {
-        
-    }
+    
 }
 
 
@@ -112,7 +107,9 @@ void push_Command(Command c){
         lcore_id = c.args.add_queue_arg.coreid;
     }else if (c.type==DELETE_FLOW_FROM_QUEUE){
         lcore_id = c.args.del_queue_arg.coreid;
-    }else{
+    }else if(c.type==DUMP_PLUGIN_RESULT){
+        lcore_id = c.args.dump_result_arg.coreid;
+    }else {
         printf("error CommandType\n");
         return;
     }
@@ -151,7 +148,7 @@ int handle_packet_per_core(void *arg)
                 PluginRuntimeNode *current = _handlers_[lcore_id].head;
                 while (current != NULL)
                 {
-                    current->data.func(mbufs[i], current->data.hash_table, current->data.res);
+                    current->data.func(mbufs[i], current->data.res);
                     current = current->next;
                     // printf("current is not null\n");
                 }
@@ -187,6 +184,18 @@ int handle_packet_per_core(void *arg)
                         deleteQueueFromCore(_command_queues[lcore_id].queue[k].args.del_queue_arg.queueid,
                          _command_queues[lcore_id].queue[k].args.del_queue_arg.coreid);
                         break;
+                    case DUMP_PLUGIN_RESULT:{
+                        PluginRuntimeNode *node = (PluginRuntimeNode *)malloc(sizeof(PluginRuntimeNode));
+                        if(popPluginRuntime(_command_queues[lcore_id].queue[k].args.dump_result_arg.pluginid,
+                         _command_queues[lcore_id].queue[k].args.dump_result_arg.coreid,node)){
+                            PluginRuntimeDumps *nodedump = (PluginRuntimeDumps *)malloc(sizeof(PluginRuntimeDumps));
+                            nodedump->node = node;
+                            nodedump->filename = _command_queues[lcore_id].queue[k].args.dump_result_arg.filename;
+                            enqueuePluginRuntimeNode(nodedump);
+                        }
+                        break;
+                    }
+                        
                     default:
                         break;
                 }

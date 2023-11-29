@@ -9,9 +9,9 @@ int main(){
     cmd1.args.reg_plugin_arg.cnt_info.bucketnum = 4096;
     cmd1.args.reg_plugin_arg.cnt_info.bucketsize = 1;
     cmd1.args.reg_plugin_arg.cnt_info.countersize = 1;
-    cmd1.args.reg_plugin_arg.hash_info.hashnum = 8;
-    cmd1.args.reg_plugin_arg.hash_info.key_len = 4;
-    cmd1.args.reg_plugin_arg.hash_info.entries = 1024;
+    // cmd1.args.reg_plugin_arg.hash_info.hashnum = 8;
+    // cmd1.args.reg_plugin_arg.hash_info.key_len = 4;
+    // cmd1.args.reg_plugin_arg.hash_info.entries = 1024;
     strncpy(cmd1.args.reg_plugin_arg.funcname, "process", sizeof(cmd1.args.reg_plugin_arg.funcname) - 1);
     strncpy(cmd1.args.reg_plugin_arg.filename, "count_traffic.so", sizeof(cmd1.args.reg_plugin_arg.filename) - 1);
     sendCommand(cmd1);
