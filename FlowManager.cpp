@@ -4,7 +4,7 @@ int _flow_id = 0;
 
 std::vector<struct flow_id *> flow_list;
 
-struct flow_id *_register_flow(int port_id, struct rte_flow *flow)
+struct flow_id *_register_flow(int port_id, int markid,struct rte_flow *flow)
 {
 	if(flow == NULL){
 		return NULL;
@@ -12,6 +12,7 @@ struct flow_id *_register_flow(int port_id, struct rte_flow *flow)
 	flow_id * fi= (flow_id *)malloc(sizeof(flow_id));;
 	fi->id = _flow_id++;
 	fi->port_id = port_id;
+	fi->markid = markid;
 	fi->flow = flow;
 	flow_list.push_back(fi);
 	return fi;
@@ -32,6 +33,19 @@ void _unregister_flow_with_id(int id){
 	for (int i = 0; i < flow_list.size(); i++)
 	{
 		if (flow_list[i]->id == id)
+		{
+			free((void*)flow_list[i]->flow);
+			free((void*)flow_list[i]);
+			flow_list.erase(flow_list.begin() + i);
+			break;
+		}
+	}
+}
+
+void _unregister_flow_with_markid(int markid){
+	for (int i = 0; i < flow_list.size(); i++)
+	{
+		if (flow_list[i]->markid == markid)
 		{
 			free((void*)flow_list[i]->flow);
 			free((void*)flow_list[i]);
@@ -65,8 +79,8 @@ struct flow_id *query_flow_id(int id){
  *
  * @param port_id
  *   The selected port.
- * @param rx_q
- *   The selected target queue.
+ * @param markid
+ *   The selected mark for every pluign runtime.
  * @param src_ip
  *   The src ip value to match the input packet.
  * @param src_mask
@@ -84,7 +98,7 @@ struct flow_id *query_flow_id(int id){
 
 /* Function responsible for creating the flow rule. 8< */
 struct flow_id*
-generate_ipv4_flow(uint16_t port_id, uint16_t rx_q,
+generate_ipv4_flow(uint16_t port_id, uint32_t markid,
 		uint32_t src_ip, uint32_t src_mask,
 		uint32_t dest_ip, uint32_t dest_mask,
 		struct rte_flow_error *error)
@@ -94,7 +108,7 @@ generate_ipv4_flow(uint16_t port_id, uint16_t rx_q,
 	struct rte_flow_item pattern[MAX_PATTERN_NUM];
 	struct rte_flow_action action[MAX_ACTION_NUM];
 	struct rte_flow *flow = NULL;
-	struct rte_flow_action_queue queue = { .index = rx_q };
+	struct rte_flow_action_mark mark;
 	struct rte_flow_item_ipv4 ip_spec;
 	struct rte_flow_item_ipv4 ip_mask;
 	/* >8 End of declaring structs being used. */
@@ -112,8 +126,9 @@ generate_ipv4_flow(uint16_t port_id, uint16_t rx_q,
 	 * create the action sequence.
 	 * one action only,  move packet to queue
 	 */
-	action[0].type = RTE_FLOW_ACTION_TYPE_QUEUE;
-	action[0].conf = &queue;
+	action[0].type = RTE_FLOW_ACTION_TYPE_MARK;
+	mark.id = markid; 
+	action[0].conf = &mark;
 	action[1].type = RTE_FLOW_ACTION_TYPE_END;
 
 	/*
@@ -152,7 +167,7 @@ generate_ipv4_flow(uint16_t port_id, uint16_t rx_q,
 	res = rte_flow_validate(port_id, &attr, pattern, action, error);
 	if (!res)
 		flow = rte_flow_create(port_id, &attr, pattern, action, error);
-		struct flow_id *fi = _register_flow(port_id,flow);
+		struct flow_id *fi = _register_flow(port_id,markid,flow);
 	/* >8 End of validation the rule and create it. */
 
 	return fi;

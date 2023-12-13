@@ -55,17 +55,18 @@ void *executeCommands(void *arg)
             case DELETE_PLUGIN:
                 push_Command(cur_cmd);
                 break;
-            case ADD_FLOW_TO_QUEUE:
+            case ADD_FLOW_TO_CORE:{
                 addFlowToQueue(
                     cur_cmd.args.add_flow_arg.port_id,
-                    cur_cmd.args.add_flow_arg.rx_q,
+                    cur_cmd.args.add_flow_arg.coreid,
                     cur_cmd.args.add_flow_arg.src_ip,
                     cur_cmd.args.add_flow_arg.src_mask,
                     cur_cmd.args.add_flow_arg.dest_ip,
                     cur_cmd.args.add_flow_arg.dest_mask
                 );
                 break;
-            case DELETE_FLOW_FROM_QUEUE:
+            }
+            case DELETE_FLOW_FROM_CORE:
                 deleteFlowFromQueue(cur_cmd.args.del_flow_arg.id);
                 break;
             case ADD_QUEUE_TO_CORE:

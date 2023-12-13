@@ -12,4 +12,5 @@
 #define DPDKCAP_CAPTURE_BURST_SIZE 256
 #define MAX_DUMP_NUMS 10
 
+#define RING_SIZE 1024
 #endif

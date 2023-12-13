@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <rte_hash.h>
 #include <rte_hash_crc.h>
-
+#include <rte_mbuf.h>
 #include "FlowManager.h"
 #include "PluginManager.h"
 #include "PluginRuntimeManager.h"
@@ -76,7 +76,7 @@ void addPlugin(int pluginid, int coreid);
 void deletePlugin(int pluginid, int coreid);
 
 // Add a flow rule to the specified queue
-int addFlowToQueue(uint16_t port_id, uint16_t rx_q, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask);
+int addFlowToQueue(uint16_t port_id, uint32_t markid, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask);
 
 // Delete a flow rule from the specified queue
 void deleteFlowFromQueue(int id);
@@ -86,7 +86,7 @@ void addQueueToCore(int queueid, int coreid);
 // Remove a source queue from core to process traffic
 void deleteQueueFromCore(int queueid, int coreid);
 
-void push_Command(Command c);
+bool push_Command(Command c);
 
 /************************************System Functions***************************************/
 // Configure the NIC device number

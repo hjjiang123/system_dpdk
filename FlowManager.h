@@ -13,12 +13,12 @@
 struct flow_id {
 	int id;
 	int port_id;
+	unsigned int markid;
 	struct rte_flow *flow;
 };
 
-
 struct flow_id*
-generate_ipv4_flow(uint16_t port_id, uint16_t rx_q,
+generate_ipv4_flow(uint16_t port_id, uint32_t markid,
 		uint32_t src_ip, uint32_t src_mask,
 		uint32_t dest_ip, uint32_t dest_mask,
 		struct rte_flow_error *error);

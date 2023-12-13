@@ -99,7 +99,7 @@ void deletePluginRuntime(int pluginid, int coreid);
  * @param node The PluginRuntimeNode to be dumped.
  */
 void dumpPluginRuntimeNode(int pluginid, char *filename, PluginRuntimeNode *node);
-
+void dequeuePluginRuntimeNode();
 // PluginRuntimeNode *findPluginRuntime(int pluginid, int coreid)
 // {
 //     PluginRuntimeNode *current = _handlers_[coreid].head;

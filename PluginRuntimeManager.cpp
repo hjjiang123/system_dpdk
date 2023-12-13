@@ -3,14 +3,14 @@
 PluginRuntimeList _handlers_[MAX_CORE_NUMS];
 
 PluginRuntimeDumps *nodequeue[MAX_DUMP_NUMS]; // Plugin runtime nodes for dumping results
-int nodequeue_front = 0;  // 队头索引
-int nodequeue_rear = 0;   // 队尾索引
-int nodequeue_count = 0;  // 队列中的元素个数
+int nodequeue_front = 0;  // Front index of the queue
+int nodequeue_rear = 0;   // Rear index of the queue
+int nodequeue_count = 0;  // Number of elements in the queue
 
-pthread_mutex_t nodequeue_mutex = PTHREAD_MUTEX_INITIALIZER;    // 互斥锁
-pthread_cond_t nodequeue_cond_empty = PTHREAD_COND_INITIALIZER; // 队列空条件变量
+pthread_mutex_t nodequeue_mutex = PTHREAD_MUTEX_INITIALIZER;    // Mutex lock
+pthread_cond_t nodequeue_cond_empty = PTHREAD_COND_INITIALIZER; // Condition variable for empty queue
 
-// 写入队列
+// Enqueue a plugin runtime node
 bool enqueuePluginRuntimeNode(PluginRuntimeDumps *nodedump) {
     pthread_mutex_lock(&nodequeue_mutex);
     if (nodequeue_count == MAX_DUMP_NUMS) {
@@ -25,7 +25,7 @@ bool enqueuePluginRuntimeNode(PluginRuntimeDumps *nodedump) {
     return true;
 }
 
-// 读取队列
+// Dequeue a plugin runtime node
 void dequeuePluginRuntimeNode() {
     pthread_mutex_lock(&nodequeue_mutex);
     while (nodequeue_count == 0) {
@@ -208,4 +208,3 @@ void dumpPluginRuntimeNode(int pluginid, char *filename,PluginRuntimeNode *node)
     }
     fclose(file);
 }
-
