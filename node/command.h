@@ -13,8 +13,8 @@
 #define UNREGISTE_RPLUGIN 1 
 #define ADD_PLUGIN 2
 #define DELETE_PLUGIN 3
-#define ADD_FLOW_TO_CORE 4
-#define DELETE_FLOW_FROM_CORE 5
+#define ADD_FLOW 4
+#define DELETE_FLOW 5
 #define ADD_QUEUE_TO_CORE 6
 #define DELETE_QUEUE_FROM_CORE 7
 #define DUMP_PLUGIN_RESULT 8
@@ -30,7 +30,7 @@ typedef struct {
     union {
         struct PluginInfo reg_plugin_arg; /**< Arguments for registering a plugin. */
         struct {
-            int pluginid;
+            unsigned int pluginid;
         } unreg_plugin_arg; /**< Arguments for unregistering a plugin. */
         struct {
             int pluginid;
@@ -42,7 +42,7 @@ typedef struct {
         } del_plugin_arg; /**< Arguments for deleting a plugin. */
         struct {
             unsigned short port_id;
-            int coreid;
+            uint32_t markid;
             unsigned int src_ip;
             unsigned int src_mask;
             unsigned int dest_ip;

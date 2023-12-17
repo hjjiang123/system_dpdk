@@ -48,7 +48,7 @@ bool enqueuePluginRuntimeNode(PluginRuntimeDumps *nodedump);
  * @return void
  */
 void initPluginRuntimeList();
-
+bool getPluginRuntime(int pluginid, PluginRuntimeNode *node);
 
 /**
  * @brief Adds a plugin runtime to the runtime manager.
@@ -60,7 +60,7 @@ void initPluginRuntimeList();
  * @param pluginid The ID of the plugin.
  * @param coreid The ID of the core.
  */
-void addPluginRuntime(int pluginid, int coreid);
+void addPluginRuntime(int pluginid);
 
 
 
@@ -74,7 +74,7 @@ void addPluginRuntime(int pluginid, int coreid);
  * @param node Pointer to the PluginRuntimeNode object to store the popped node.
  * @return true if a node was successfully popped, false otherwise.
  */
-bool popPluginRuntime(int pluginid, int coreid, PluginRuntimeNode *node);
+bool popPluginRuntime(int pluginid, PluginRuntimeNode *node);
 
 /**
  * @brief Deletes a plugin runtime from the PluginRuntimeManager.
@@ -85,7 +85,7 @@ bool popPluginRuntime(int pluginid, int coreid, PluginRuntimeNode *node);
  * @param pluginid The ID of the plugin runtime to be deleted.
  * @param coreid The ID of the core where the plugin runtime is running.
  */
-void deletePluginRuntime(int pluginid, int coreid);
+void deletePluginRuntime(int pluginid);
 
 /**
  * @brief Dump the PluginRuntimeNode information to a file.

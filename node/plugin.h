@@ -3,22 +3,35 @@
 
 typedef char Byte;
 
+typedef union
+{
+    struct
+    {
+        unsigned int core_id : 10;      // 核心号
+        unsigned int plugin_index : 10; // 核心内子任务号,由任务注册分配
+        unsigned int plugin_id : 3;     // 子任务内插件号
+        unsigned int flip : 1;          // 是否翻转，0->否，1->是
+        unsigned int reserve : 8;       // 保留位
+    } id1;
+    unsigned int id2;
+} MARKID;
+
 /**
  * @brief Structure representing counter information.
- * 
+ *
  * This structure holds information about the number of rows, buckets, bucket size, and counter size.
  */
-struct CounterInfo {
-    int rownum;        /**< Number of rows */
-    int bucketnum;      /**< Number of buckets */
-    int bucketsize;     /**< Size of each bucket */
-    int countersize;    /**< Size of each counter */
+struct CounterInfo
+{
+    int rownum;      /**< Number of rows */
+    int bucketnum;   /**< Number of buckets */
+    int bucketsize;  /**< Size of each bucket */
+    int countersize; /**< Size of each counter */
 };
-
 
 // /**
 //  * @brief Structure representing hash information.
-//  * 
+//  *
 //  * This structure contains the number of hashes, the original range, and the hash range.
 //  */
 // struct HashInfo {
@@ -27,18 +40,18 @@ struct CounterInfo {
 //     unsigned int entries;
 // };
 
-
 /**
  * @brief Structure representing information about a plugin.
  */
-struct PluginInfo{
-    int id;  /**< Plugin identifier */
-    CounterInfo cnt_info;  /**< Counter information */
+struct PluginInfo
+{
+    unsigned int task_id; // 任务号，由任务注册分配
+    MARKID id;                 /**< Plugin identifier */
+    CounterInfo cnt_info; /**< Counter information */
     // HashInfo hash_info;  /**< Hash information */
     char funcname[30];  /**< Plugin function */
-    char filename[100];  /**< Plugin filename */
+    char filename[100]; /**< Plugin filename */
 };
-
 
 /**
  * @brief Function pointer type definition.
@@ -51,22 +64,22 @@ struct PluginInfo{
  */
 typedef int (*PF)(struct rte_mbuf *, Byte ****res);
 
-
 /**
  * @brief Structure representing the runtime information of a plugin.
- * 
+ *
  * This structure contains the following fields:
  * - id: The identifier of the plugin.
  * - res: A pointer to the resources used by the plugin.
  * - hash_table: A pointer to the hash tables used by the plugin.
  * - func: A function pointer to the plugin's main function.
  */
-struct PluginRuntime{
-    int id; 
-    Byte ****res; 
-    // rte_hash **hash_table; 
-    PF func; 
+struct PluginRuntime
+{
+    unsigned int task_id; // 任务号，由任务注册分配
+    MARKID id; // 32位插件运行时，由plugin生成
+    Byte ****res;
+    // rte_hash **hash_table;
+    PF func;
 };
-
 
 #endif

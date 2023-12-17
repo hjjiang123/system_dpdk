@@ -35,7 +35,7 @@ void dequeuePluginRuntimeNode() {
     nodequeue_front = (nodequeue_front + 1) % MAX_DUMP_NUMS;
     nodequeue_count--;
     pthread_mutex_unlock(&nodequeue_mutex);
-    dumpPluginRuntimeNode(item->node->data.id, item->filename, item->node);
+    dumpPluginRuntimeNode(item->node->data.id.id2, item->filename, item->node);
 }
 
 
@@ -48,7 +48,7 @@ void initPluginRuntimeList()
     }
 }
 
-void addPluginRuntime(int pluginid, int coreid)
+void addPluginRuntime(int pluginid)
 {
     // printf("addPluginRuntime\n");
     // Get plugin information
@@ -67,33 +67,11 @@ void addPluginRuntime(int pluginid, int coreid)
             }
         }
     }
-    // printf("addPluginRuntime: %d\n", 0);
-    // Create hash tables
-    // struct rte_hash *hash_table[pi->hash_info.hashnum];
-    // for (unsigned int i = 0; i < pi->hash_info.hashnum; i++)
-    // {
-    //     char name[20];
-    //     sprintf(name, "%d_%d", pi->id, i);
-    //     struct rte_hash_parameters hash_params = {
-    //         .name = name,
-    //         .entries = pi->hash_info.entries,
-    //         .key_len = pi->hash_info.key_len,
-    //         .hash_func = rte_hash_crc,
-    //         .hash_func_init_val = i,
-    //     };
-    //     hash_table[i] = rte_hash_create(&hash_params);
-    //     if (hash_table[i] == NULL)
-    //     {
-    //         printf("Failed to create hash table %d\n", i);
-    //         return;
-    //     }
-    // }
-    // printf("addPluginRuntime: %d\n", 1);
     // Get the function pointer for the plugin
     PF myFunctionPtr = (PF)_PM.getFunction<PF>(pi->filename, pi->funcname);
     // Create a plugin runtime object
     PluginRuntime *newPlugin = (PluginRuntime *)malloc(sizeof(PluginRuntime));
-    newPlugin->id = pluginid;
+    newPlugin->id.id2 = pluginid;
     newPlugin->res = res;
     // newPlugin->hash_table = hash_table;
     newPlugin->func = myFunctionPtr;
@@ -101,27 +79,28 @@ void addPluginRuntime(int pluginid, int coreid)
     newNode->data = *newPlugin;
     newNode->next = NULL;
     // printf("addPluginRuntime: %d\n", 2);
-    if (_handlers_[coreid].head == NULL)
+    if (_handlers_[pi->id.id1.core_id].head == NULL)
     {
-        _handlers_[coreid].head = newNode;
-        _handlers_[coreid].tail = newNode;
+        _handlers_[pi->id.id1.core_id].head = newNode;
+        _handlers_[pi->id.id1.core_id].tail = newNode;
     }
     else
     {
-        _handlers_[coreid].tail->next = newNode;
-        _handlers_[coreid].tail = newNode;
+        _handlers_[pi->id.id1.core_id].tail->next = newNode;
+        _handlers_[pi->id.id1.core_id].tail = newNode;
     }
     // printf("addPluginRuntime: %d\n", _handlers_[coreid].tail->data.id);
 }
 
-bool popPluginRuntime(int pluginid, int coreid, PluginRuntimeNode *node)
+bool popPluginRuntime(int pluginid, PluginRuntimeNode *node)
 {
+    PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
+    int coreid = pi->id.id1.core_id;
     node = _handlers_[coreid].head;
     PluginRuntimeNode *previous = NULL;
-    PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
     while (node != NULL)
     {
-        if (node->data.id == pluginid)
+        if (node->data.id.id2 == pluginid)
         {
             if (previous == NULL)
             {
@@ -144,11 +123,29 @@ bool popPluginRuntime(int pluginid, int coreid, PluginRuntimeNode *node)
     return false;
 }
 
-void deletePluginRuntime(int pluginid, int coreid)
+bool getPluginRuntime(int pluginid, PluginRuntimeNode *node)
 {
     PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
+    int coreid = pi->id.id1.core_id;
+    PluginRuntimeNode * nodetemp = _handlers_[coreid].head;
+    while (nodetemp != NULL)
+    {
+        if (node->data.id.id2 == pluginid)
+        {
+            node = nodetemp;
+            return true;
+        }
+        nodetemp = nodetemp->next;
+    }
+    return false;
+}
+
+void deletePluginRuntime(int pluginid)
+{
+    PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
+    int coreid = pi->id.id1.core_id;
     PluginRuntimeNode *node = NULL;
-    if(popPluginRuntime(pluginid, coreid, node)){
+    if(popPluginRuntime(pluginid, node)){
         // Release memory
         for (int i = 0; i < pi->cnt_info.rownum; i++)
         {
@@ -181,7 +178,7 @@ void deletePluginRuntime(int pluginid, int coreid)
     }
 }
 
-void dumpPluginRuntimeNode(int pluginid, char *filename,PluginRuntimeNode *node){
+void dumpPluginRuntimeNode(unsigned int pluginid, char *filename,PluginRuntimeNode *node){
     PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
     printf("dumpResult\n");
     char p[128];
@@ -196,14 +193,15 @@ void dumpPluginRuntimeNode(int pluginid, char *filename,PluginRuntimeNode *node)
                 for (int k = 0; k < pi->cnt_info.bucketsize; k++)
                 {
                     fwrite(node->data.res[i][j][k], pi->cnt_info.countersize, 1, file);
-                    free((void *)(node->data.res)[i][j][k]);
-                    node->data.res[i][j][k] = NULL;
+                    memset(node->data.res[i][j][k], 0, pi->cnt_info.countersize);
+                    // free((void *)(node->data.res)[i][j][k]);
+                    // node->data.res[i][j][k] = NULL;
                 }
-                free((void *)(node->data.res)[i][j]);
-                node->data.res[i][j] = NULL;
+                // free((void *)(node->data.res)[i][j]);
+                // node->data.res[i][j] = NULL;
             }
-            free((void *)(node->data.res[i]));
-            node->data.res[i] = NULL;
+            // free((void *)(node->data.res[i]));
+            // node->data.res[i] = NULL;
         }
     }
     fclose(file);

@@ -5,8 +5,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <arpa/inet.h>
-#include "../config.h"
-#include "../command.h"
+#include "../node/config.h"
+#include "../node/command.h"
 
 
 /**

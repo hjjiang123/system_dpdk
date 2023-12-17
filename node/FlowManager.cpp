@@ -4,6 +4,17 @@ int _flow_id = 0;
 
 std::vector<struct flow_id *> flow_list;
 
+struct flow_id *find_flow(uint16_t port_id, uint32_t mark_id) {
+    for (int i = 0; i < flow_list.size(); i++)
+	{
+		if (flow_list[i]->port_id == port_id && flow_list[i]->markid == mark_id)
+		{
+			return flow_list[i];
+		}
+	}
+    return NULL;
+}
+
 struct flow_id *_register_flow(int port_id, int markid,struct rte_flow *flow)
 {
 	if(flow == NULL){
@@ -191,6 +202,16 @@ void destroy_ipv4_flow(struct flow_id *flow_id)
 void destroy_ipv4_flow_with_id(int id){
 	struct flow_id *flow_id = query_flow_id(id);
 	destroy_ipv4_flow(flow_id);
+}
+void destroy_ipv4_flow_with_markid(int port_id,int mark_id){
+	for (int i = 0; i < flow_list.size(); i++)
+	{
+		if (flow_list[i]->port_id == port_id && flow_list[i]->markid == mark_id)
+		{
+			destroy_ipv4_flow(flow_list[i]);
+		}
+	}
+	
 }
 /* >8 End of function responsible for creating the flow rule. */
 

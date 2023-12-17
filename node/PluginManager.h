@@ -45,6 +45,12 @@ public:
      * @return Returns true if the plugin was successfully unloaded, false otherwise.
      */
     bool unloadPlugin(const char filename[]);//卸载插件
+    /**
+     * @brief Unloads a plugin with the specified filename.
+     * @param filename The filename of the plugin to unload.
+     * @return Returns true if the plugin was successfully unloaded, false otherwise.
+     */
+    bool unloadPlugin(unsigned int id);//卸载插件
 
     /**
      * @brief Retrieves a function pointer from a loaded plugin.
@@ -82,7 +88,6 @@ public:
     PluginInfo *getPluginInfo_fromid(int id);
 private:
     std::vector<PluginHandleInfo> plugins_; // Vector to store loaded plugins
-    int _nextId = 1; // Next available plugin ID
     const char* PLUGIN_DIR = "./plugin";
 };
 

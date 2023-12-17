@@ -24,4 +24,5 @@ generate_ipv4_flow(uint16_t port_id, uint32_t markid,
 		struct rte_flow_error *error);
 
 void destroy_ipv4_flow_with_id(int id);
+void destroy_ipv4_flow_with_markid(int port_id,int mark_id);
 #endif

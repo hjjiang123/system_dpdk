@@ -26,28 +26,28 @@ void unregisterPlugin(PluginInfo plugin)
     _PM.unloadPlugin(plugin.filename);
 }
 
-void unregisterPlugin(int pluginid)
+void unregisterPlugin(unsigned int pluginid)
 {
     printf("unregister Plugin\n");
     PluginInfo *pi = _PM.getPluginInfo_fromid(pluginid);
     _PM.unloadPlugin(pi->filename);
 }
 
-void addPlugin(int pluginid, int coreid)
+void addPlugin(unsigned int pluginid)
 {
     printf("addPlugin\n");
-    addPluginRuntime(pluginid, coreid);
+    addPluginRuntime(pluginid);
     return;
 }
 
-void deletePlugin(int pluginid, int coreid)
+void deletePlugin(unsigned int pluginid)
 {
     printf("deletePlugin\n");
-    deletePluginRuntime(pluginid, coreid);
+    deletePluginRuntime(pluginid);
 }
 
 // Add a flow rule to the specified queue
-int addFlowToQueue(uint16_t port_id, uint32_t markid, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask)
+int addFlowFilter(uint16_t port_id, uint32_t markid, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask)
 {
     printf("addFlowToQueue\n");
     struct rte_flow_error error;
@@ -67,7 +67,7 @@ int addFlowToQueue(uint16_t port_id, uint32_t markid, uint32_t src_ip, uint32_t 
 }
 
 // Delete a flow rule from the specified queue
-void deleteFlowFromQueue(int id)
+void deleteFlowFilter(int id)
 {
     printf("deleteFlowFromQueue\n");
     destroy_ipv4_flow_with_id(id);
@@ -168,12 +168,11 @@ int handle_packet_per_core(void *arg)
                 switch (_command_queues[lcore_id].queue[k].type)
                 {
                 case ADD_PLUGIN:
-                    addPlugin(_command_queues[lcore_id].queue[k].args.add_plugin_arg.pluginid,
-                              _command_queues[lcore_id].queue[k].args.add_plugin_arg.coreid);
+                    addPlugin(_command_queues[lcore_id].queue[k].args.add_plugin_arg.pluginid
+                              );
                     break;
                 case DELETE_PLUGIN:
-                    deletePlugin(_command_queues[lcore_id].queue[k].args.del_plugin_arg.pluginid,
-                                 _command_queues[lcore_id].queue[k].args.del_plugin_arg.coreid);
+                    deletePlugin(_command_queues[lcore_id].queue[k].args.del_plugin_arg.pluginid);
                     break;
                 case ADD_QUEUE_TO_CORE:
                     addQueueToCore(_command_queues[lcore_id].queue[k].args.add_queue_arg.queueid,
@@ -185,15 +184,12 @@ int handle_packet_per_core(void *arg)
                     break;
                 case DUMP_PLUGIN_RESULT:
                 {
-                    PluginRuntimeNode *node = (PluginRuntimeNode *)malloc(sizeof(PluginRuntimeNode));
-                    if (popPluginRuntime(_command_queues[lcore_id].queue[k].args.dump_result_arg.pluginid,
-                                         _command_queues[lcore_id].queue[k].args.dump_result_arg.coreid, node))
-                    {
-                        PluginRuntimeDumps *nodedump = (PluginRuntimeDumps *)malloc(sizeof(PluginRuntimeDumps));
-                        nodedump->node = node;
-                        nodedump->filename = _command_queues[lcore_id].queue[k].args.dump_result_arg.filename;
-                        enqueuePluginRuntimeNode(nodedump);
-                    }
+                    PluginRuntimeNode *node;
+                    getPluginRuntime(_command_queues[lcore_id].queue[k].args.dump_result_arg.pluginid,node);
+                    PluginRuntimeDumps *nodedump = (PluginRuntimeDumps *)malloc(sizeof(PluginRuntimeDumps));
+                    nodedump->node = node;
+                    nodedump->filename = _command_queues[lcore_id].queue[k].args.dump_result_arg.filename;
+                    enqueuePluginRuntimeNode(nodedump);
                     break;
                 }
 
@@ -222,6 +218,7 @@ int capture_core_thread(void *arg){
     unsigned int lcore_id = rte_lcore_id();
     struct rte_mbuf *mbufs[DPDKCAP_CAPTURE_BURST_SIZE];
     uint32_t markid;
+    int coreid;
     while (1)
     {
         // 从环形缓冲区中取出一个报文
@@ -233,8 +230,9 @@ int capture_core_thread(void *arg){
                 // 匹配markid 发送至不同的环形缓冲区
                 if (mbufs[i]->ol_flags & RTE_MBUF_F_RX_FDIR_ID){
                     markid = mbufs[i]->hash.fdir.hi;
+                    coreid = (markid>>7)&0X3ff;
                     //发送到不同环形缓冲区
-                    rte_ring_enqueue(rings[markid], mbufs[i]);
+                    rte_ring_enqueue(rings[coreid], mbufs[i]);
                 }
             }
             temp = temp->next;

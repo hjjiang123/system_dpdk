@@ -51,7 +51,7 @@ void unregisterPlugin(PluginInfo plugin);
  * 
  * @param pluginid The ID of the plugin to unregister.
  */
-void unregisterPlugin(int pluginid);
+void unregisterPlugin(unsigned int pluginid);
 
 /**
  * @brief Adds a plugin to the system.
@@ -63,7 +63,7 @@ void unregisterPlugin(int pluginid);
  * @param pluginid The ID of the plugin.
  * @param coreid The ID of the core where the plugin will be deployed.
  */
-void addPlugin(int pluginid, int coreid);
+void addPlugin(unsigned int pluginid);
 
 /**
  * @brief Deletes a plugin from the specified core.
@@ -73,13 +73,13 @@ void addPlugin(int pluginid, int coreid);
  * @param pluginid The ID of the plugin to be deleted.
  * @param coreid The ID of the core from which the plugin should be deleted.
  */
-void deletePlugin(int pluginid, int coreid);
+void deletePlugin(unsigned int pluginid);
 
 // Add a flow rule to the specified queue
-int addFlowToQueue(uint16_t port_id, uint32_t markid, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask);
+int addFlowFilter(uint16_t port_id, uint32_t markid, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask);
 
 // Delete a flow rule from the specified queue
-void deleteFlowFromQueue(int id);
+void deleteFlowFilter(int id);
 // Add a source queue for core to process traffic
 void addQueueToCore(int queueid, int coreid);
 

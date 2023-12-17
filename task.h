@@ -31,19 +31,24 @@ typedef struct MSTask{
 
 //子任务
 typedef struct MSSubTask{
-    int task_id; //10位任务号，由任务注册分配
-    int subtask_id; //10位子任务号，由节点子任务注册分配
-    int flip; //1位是否翻转，0->否，1->是
+    int type; //0->add,1->delete,2->update
+    int task_id; //任务号，由任务注册分配
+    int host_id; //节点号
     int flow_num; //流规则数量
     MSFlowEntry flow[16]; //流规则数组
-    int obj_split; //目标可分性(子任务设为目标不可分)
     char filename[100];  /** MSSubTask Plugin filename */
     int pi_num; //插件数量
     PluginInfo pis[8]; //插件数组
-    int coreid[8];     //插件运行的核心
     int pi_relations[8][8]; //插件DAG
-    long long time; //任务持续秒数
+    long long times; //任务持续周期数
     int epoch; //测量周期，秒数
+};
+
+//子任务运行时
+typedef struct MSSubTaskRuntime{
+    int pi_num; //插件数量
+    int pi_relations[8][8]; //插件DAG
+    PluginRuntime pis[8]; //插件运行时数组
 };
 
 #endif
