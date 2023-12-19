@@ -14,96 +14,43 @@
 #include "QueueManager.h"
 #include "command.h"
 #include "capture.h"
-
-
-/************************************Global Variables***************************************/
+#include "subtask_runtime.h"
 
 struct lcoreCommandQueue {
     Command queue[SOCKET_QUEUE_SIZE];
     int front;
     int rear;
     std::mutex mt;
-}; // Command queue for each core
+};
 
+void registerSubTask(MSSubTask task);
 
-/************************************Utility Functions************************************/
+void unregisterSubTask(MSSubTask task);
 
-/**
- * Registers a plugin and returns its assigned ID.
- *
- * @param plugin A shared pointer to the PluginInfo object representing the plugin to be registered.
- * @return The ID assigned to the registered plugin, or -1 if the plugin failed to load.
- */
-int registerPlugin(PluginInfo plugin);
+void unregisterSubTask(unsigned int subtask_id);
 
-/**
- * @brief Unregisters a plugin from the plugins list.
- *
- * This function searches for the specified plugin in the plugins list and removes it.
- *
- * @param plugin The shared pointer to the PluginInfo object representing the plugin to be unregistered.
- */
-void unregisterPlugin(PluginInfo plugin);
-/**
- * @brief Unregisters a plugin with the given plugin ID.
- * 
- * This function unloads the plugin associated with the given plugin ID.
- * 
- * @param pluginid The ID of the plugin to unregister.
- */
-void unregisterPlugin(unsigned int pluginid);
+// void addMSSubTask(unsigned int subtask_id);
 
-/**
- * @brief Adds a plugin to the system.
- *
- * This function allocates resources for the plugin, creates a hash table,
- * retrieves the function pointer for the plugin, and creates a plugin runtime object.
- * The plugin is then added to the array of plugins to be deployed.
- *
- * @param pluginid The ID of the plugin.
- * @param coreid The ID of the core where the plugin will be deployed.
- */
-void addPlugin(unsigned int pluginid);
+void deleteMSSubTask(unsigned int subtask_id);
 
-/**
- * @brief Deletes a plugin from the specified core.
- * 
- * This function deletes a plugin from the specified core. It releases the resources associated with the plugin, including freeing memory and releasing hash tables.
- * 
- * @param pluginid The ID of the plugin to be deleted.
- * @param coreid The ID of the core from which the plugin should be deleted.
- */
-void deletePlugin(unsigned int pluginid);
-
-// Add a flow rule to the specified queue
 int addFlowFilter(uint16_t port_id, uint32_t markid, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask);
 
-// Delete a flow rule from the specified queue
 void deleteFlowFilter(int id);
-// Add a source queue for core to process traffic
+
 void addQueueToCore(int queueid, int coreid);
 
-// Remove a source queue from core to process traffic
 void deleteQueueFromCore(int queueid, int coreid);
 
 bool push_Command(Command c);
 
-/************************************System Functions***************************************/
-// Configure the NIC device number
 void configurePort(unsigned int port_id);
 
-// Configure the number of logical cores
 void configureNumCores(unsigned int numcores);
 
-// Initialize the dpdk environment
 void init(int argc, char **argv);
 
-// Daemon thread for each core
 int handle_packet_per_core(void *arg);
 
-// Main thread to deploy child threads to each core
 void run();
-
-
 
 #endif

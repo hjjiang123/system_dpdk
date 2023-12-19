@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.puml": "plantuml",
         "cctype": "cpp",
         "clocale": "cpp",
         "cmath": "cpp",
@@ -56,6 +57,11 @@
         "stdbool.h": "c",
         "stdio.h": "c",
         "flow_blocks.c": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "numbers": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "semaphore": "cpp",
+        "stop_token": "cpp"
     }
 }

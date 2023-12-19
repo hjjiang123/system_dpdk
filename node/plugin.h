@@ -8,10 +8,9 @@ typedef union
     struct
     {
         unsigned int core_id : 10;      // 核心号
-        unsigned int plugin_index : 10; // 核心内子任务号,由任务注册分配
-        unsigned int plugin_id : 3;     // 子任务内插件号
-        unsigned int flip : 1;          // 是否翻转，0->否，1->是
-        unsigned int reserve : 8;       // 保留位
+        unsigned int subtask_index : 10; // 核心内子任务号,由任务调度分配
+        unsigned int flip : 10;          // 是否翻转，0->否，1->是
+        unsigned int reserve : 2;       // 保留位
     } id1;
     unsigned int id2;
 } MARKID;
@@ -45,12 +44,13 @@ struct CounterInfo
  */
 struct PluginInfo
 {
-    unsigned int task_id; // 任务号，由任务注册分配
-    MARKID id;                 /**< Plugin identifier */
+    // unsigned int task_id; // 任务号，由任务注册分配
+    // MARKID id;                 /**< Plugin identifier */
     CounterInfo cnt_info; /**< Counter information */
     // HashInfo hash_info;  /**< Hash information */
     char funcname[30];  /**< Plugin function */
     char filename[100]; /**< Plugin filename */
+    bool flipable;      /**< Whether the plugin is flipable */
 };
 
 /**
@@ -75,7 +75,6 @@ typedef int (*PF)(struct rte_mbuf *, Byte ****res);
  */
 struct PluginRuntime
 {
-    unsigned int task_id; // 任务号，由任务注册分配
     MARKID id; // 32位插件运行时，由plugin生成
     Byte ****res;
     // rte_hash **hash_table;

@@ -43,16 +43,21 @@ void *executeCommands(void *arg)
         server_front = (server_front + 1) % SOCKET_QUEUE_SIZE;
         pthread_mutex_unlock(&mutex);
         switch(cur_cmd.type){
-            case REGISTER_PLUGIN:
-                registerPlugin(cur_cmd.args.reg_plugin_arg);
+            case REGISTER_SUBTASK:
+                registerSubTask(cur_cmd.args.reg_task_arg);
                 break;
-            case UNREGISTE_RPLUGIN:
-                unregisterPlugin(cur_cmd.args.unreg_plugin_arg.pluginid);
+            case UNREGISTE_SUBTASK:
+                unregisterSubTask(cur_cmd.args.unreg_task_arg.subtask_id);
                 break;
-            case ADD_PLUGIN:
-                push_Command(cur_cmd);
+            case ADD_SUBTASK:
+                MSSubTaskRuntimeNode *trtnode = allocateMSSubTaskRuntime(cur_cmd.args.add_task_arg.subtask_id);
+                Command add_task_self_cmd={
+                    .type=ADD_SUBTASK_SELF,
+                    .args.add_task_self_arg.trtnode=trtnode
+                };
+                push_Command(add_task_self_cmd);
                 break;
-            case DELETE_PLUGIN:
+            case DELETE_SUBTASK:
                 push_Command(cur_cmd);
                 break;
             case ADD_FLOW:{
@@ -69,15 +74,15 @@ void *executeCommands(void *arg)
             case DELETE_FLOW:
                 deleteFlowFilter(cur_cmd.args.del_flow_arg.id);
                 break;
-            case ADD_QUEUE_TO_CORE:
-                push_Command(cur_cmd);
-                break;
-            case DELETE_QUEUE_FROM_CORE:
-                push_Command(cur_cmd);
-                break;
-            case DUMP_PLUGIN_RESULT:
-                push_Command(cur_cmd);
-                break;
+            // case ADD_QUEUE_TO_CORE:
+            //     push_Command(cur_cmd);
+            //     break;
+            // case DELETE_QUEUE_FROM_CORE:
+            //     push_Command(cur_cmd);
+            //     break;
+            // case DUMP_PLUGIN_RESULT:
+            //     push_Command(cur_cmd);
+            //     break;
             default:
                 break;
         }

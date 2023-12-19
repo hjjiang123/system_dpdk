@@ -9,15 +9,26 @@
 /**
  * @brief Enumeration of command types.
  */
-#define REGISTER_PLUGIN 0
-#define UNREGISTE_RPLUGIN 1 
-#define ADD_PLUGIN 2
-#define DELETE_PLUGIN 3
+// #define REGISTER_PLUGIN 0
+// #define UNREGISTE_RPLUGIN 1 
+// #define ADD_PLUGIN 2
+// #define DELETE_PLUGIN 3
+// #define ADD_FLOW 4
+// #define DELETE_FLOW 5
+// #define ADD_QUEUE_TO_CORE 6
+// #define DELETE_QUEUE_FROM_CORE 7
+// #define DUMP_PLUGIN_RESULT 8
+
+#define REGISTER_SUBTASK 0
+#define UNREGISTE_SUBTASK 1 
+#define ADD_SUBTASK 2
+#define ADD_SUBTASK_SELF 201
+#define DELETE_SUBTASK 3
 #define ADD_FLOW 4
 #define DELETE_FLOW 5
-#define ADD_QUEUE_TO_CORE 6
-#define DELETE_QUEUE_FROM_CORE 7
-#define DUMP_PLUGIN_RESULT 8
+// #define ADD_QUEUE_TO_CORE 6
+// #define DELETE_QUEUE_FROM_CORE 7
+#define DUMP_SUBTASK_RESULT 6
 
 /**
  * @brief Represents a command structure.
@@ -28,42 +39,45 @@
 typedef struct {
     int type; /**< The type of the command. */
     union {
-        struct PluginInfo reg_plugin_arg; /**< Arguments for registering a plugin. */
-        struct {
-            unsigned int pluginid;
-        } unreg_plugin_arg; /**< Arguments for unregistering a plugin. */
-        struct {
-            int pluginid;
+        struct MSSubTask reg_task_arg; /**< Arguments for registering a plugin. */
+        struct unreg_task_arg {
+            unsigned int subtask_id;
+        } unreg_task_arg; /**< Arguments for unregistering a plugin. */
+        struct add_task_arg{
+            unsigned int subtask_id;
             int coreid;
-        } add_plugin_arg; /**< Arguments for adding a plugin. */
-        struct {
-            int pluginid;
+        } add_task_arg; /**< Arguments for adding a task. */
+        struct del_task_arg{
+            unsigned int subtask_id;
             int coreid;
-        } del_plugin_arg; /**< Arguments for deleting a plugin. */
-        struct {
+        } del_task_arg; /**< Arguments for deleting a task. */
+        struct add_flow_arg{
             unsigned short port_id;
-            uint32_t markid;
+            unsigned int markid;
             unsigned int src_ip;
             unsigned int src_mask;
             unsigned int dest_ip;
             unsigned int dest_mask;
         } add_flow_arg; /**< Arguments for adding a flow. */
-        struct {
+        struct del_flow_arg{
             unsigned short id;
         } del_flow_arg; /**< Arguments for deleting a flow. */
-        struct {
-            int queueid;
-            int coreid;
-        } add_queue_arg; /**< Arguments for adding a queue. */
-        struct {
-            int queueid;
-            int coreid;
-        } del_queue_arg; /**< Arguments for deleting a queue. */
-        struct {
-            int pluginid;
-            int coreid;
-            char filename[100];
-        } dump_result_arg; /**< Arguments for dumping the result of a plugin. */
+        // struct {
+        //     int queueid;
+        //     int coreid;
+        // } add_queue_arg; /**< Arguments for adding a queue. */
+        // struct {
+        //     int queueid;
+        //     int coreid;
+        // } del_queue_arg; /**< Arguments for deleting a queue. */
+        // struct {
+        //     int taskid;
+        //     int coreid;
+        //     char filename[100];
+        // } dump_result_arg; /**< Arguments for dumping the result of a task. */
+        struct add_task_self_arg{
+            MSSubTaskRuntimeNode *trtnode;
+        } add_task_self_arg;
     } args; /**< The arguments of the command. */
 } Command;
 

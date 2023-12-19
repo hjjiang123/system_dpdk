@@ -1,5 +1,4 @@
 #include "FlowManager.h"
-
 int _flow_id = 0;
 
 std::vector<struct flow_id *> flow_list;
@@ -109,7 +108,7 @@ struct flow_id *query_flow_id(int id){
 
 /* Function responsible for creating the flow rule. 8< */
 struct flow_id*
-generate_ipv4_flow(uint16_t port_id, uint32_t markid,
+generate_ipv4_flow_only(uint16_t port_id, uint32_t markid,
 		uint32_t src_ip, uint32_t src_mask,
 		uint32_t dest_ip, uint32_t dest_mask,
 		struct rte_flow_error *error)
@@ -184,6 +183,12 @@ generate_ipv4_flow(uint16_t port_id, uint32_t markid,
 	return fi;
 }
 
+void add_ipv4_flow_properly(uint16_t port_id, uint32_t markid,
+		uint32_t src_ip, uint32_t src_mask,
+		uint32_t dest_ip, uint32_t dest_mask){
+			//搜索是否有重叠
+
+		}
 void destroy_ipv4_flow(struct flow_id *flow_id)
 {
 	if(flow_id == NULL){
