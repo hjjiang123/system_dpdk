@@ -34,17 +34,18 @@ void delete_task_without_epoch(MSSubTaskRuntimeNode * trtnode){
     cmd2.type = DELETE_SUBTASK;
     cmd2.args.del_task_arg.subtask_id = trtnode->trt.subtask.id.id2;
     cmd2.args.del_task_arg.coreid = trtnode->trt.subtask.core_id;
-    sendCommand(cmd2);
+    push_Command(cmd2);
     // 3. 删除流规则
 }
 
 void resolve_task(MSSubTask subtask){
-    // 解析插件
-    Command cmd1;
-    cmd1.type = REGISTER_SUBTASK;
-    cmd1.args.reg_task_arg = subtask;
-    sendCommand(cmd1);
+    
     if (subtask.type == 0){ // add
+        // 解析插件
+        Command cmd1;
+        cmd1.type = REGISTER_SUBTASK;
+        cmd1.args.reg_task_arg = subtask;
+        sendCommand(cmd1);
         if(subtask.times == 1){ //非周期性测量
             MSSubTaskRuntimeNode *trtnode = add_task_without_epoch(subtask);
             sleep(subtask.epoch);
@@ -67,10 +68,16 @@ void resolve_task(MSSubTask subtask){
             delete_task_without_epoch(trtnode[0]);
             delete_task_without_epoch(trtnode[1]);
         }
+        Command cmdunreg;
+        cmdunreg.type = UNREGISTE_SUBTASK;
+        cmdunreg.args.unreg_task_arg.subtask_id = subtask.id.id2;
+        sendCommand(cmdunreg);
+    }else if (subtask.type == 1){ // delete
+        unsigned int id = subtask.id.id2;
+        MSSubTaskRuntimeNode *trtnode;
+        getMSSubTaskRuntimeNode(id, trtnode);
+        delete_task_without_epoch(trtnode);
+        // 3. 删除流规则
     }
-    Command cmdunreg;
-    cmdunreg.type = REGISTER_SUBTASK;
-    cmdunreg.args.unreg_task_arg.subtask_id = subtask.id.id2;
-    sendCommand(cmdunreg);
     
 }
