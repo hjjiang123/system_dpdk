@@ -57,11 +57,11 @@ void resolve_task(MSSubTask subtask){
             trtnode[1] = add_task_without_epoch(subtask);
             int t=0;
             while(t < subtask.times){
-                // destroy_ipv4_flow_with_markid(0, subtask.pis[0].id.id2);
                 // add_task_flow(subtask);
-                enqueueMSSubTaskRuntimeNodeDump(trtnode[t%2]);
                 t++;
                 sleep(subtask.epoch);
+                enqueueMSSubTaskRuntimeNodeDump(trtnode[t%2]);
+                // destroy_ipv4_flow_with_markid(0, subtask.pis[0].id.id2);
             }
             // destroy_ipv4_flow_with_markid(0, subtask.pis[0].id.id2);
             delete_task_without_epoch(trtnode[0]);
