@@ -3,6 +3,8 @@
 #include <map>
 #include <mutex>
 #include <queue>
+#include <iostream>
+#include <vector>
 #include "../task.h"
 #include "../node/plugin.h"
 typedef struct FlowEntryDupInfo{
@@ -11,6 +13,12 @@ typedef struct FlowEntryDupInfo{
     int flow_index;
     MSFlowEntry flow[16];
 } FlowEntryDupInfo;
+
+MSFlowEntry findFlowDifference(MSFlowEntry fe1, MSFlowEntry fe2); // fe1-fe2
+bool equalFlow(MSFlowEntry fe1, MSFlowEntry fe2); // fe1==fe2
+MSFlowEntry findFlowIntersection_once(MSFlowEntry fe1, MSFlowEntry fe2);// fe1&fe2
+bool hasFlowIntersection(MSFlowEntry fe1, MSFlowEntry fe2);// fe1&fe2!=0
+
 //维护待加载的任务
 
 //维护已加载的任务

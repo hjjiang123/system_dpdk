@@ -64,6 +64,7 @@
         "semaphore": "cpp",
         "stop_token": "cpp",
         "unordered_set": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "cstring": "cpp"
     }
 }
