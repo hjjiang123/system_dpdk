@@ -54,6 +54,7 @@ typedef struct {
         struct add_flow_arg{
             unsigned short port_id;
             unsigned int markid;
+            unsigned int priority;
             unsigned int src_ip;
             unsigned int src_mask;
             unsigned int dest_ip;

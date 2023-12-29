@@ -91,9 +91,14 @@ bool scheduleMSTask_once(){
     return true;    
 }
 MSFlowEntry findFlowIntersection_once(MSFlowEntry e1, MSFlowEntry e2){//e1&e2
+    if(e1.direction = -1) return e2;
     MSFlowEntry e;
     return e;
 };
+bool hasFlowIntersection(MSFlowEntry e1, MSFlowEntry e2){
+    if(e1.direction = -1) return true;
+    return false;
+}
 MSFlowEntry findFlowDifference(MSFlowEntry e1, MSFlowEntry e2){ //e1-e2
     MSFlowEntry diff;
     // Perform set difference operation on the flow entries
@@ -102,73 +107,174 @@ MSFlowEntry findFlowDifference(MSFlowEntry e1, MSFlowEntry e2){ //e1-e2
     return diff;
 };
 /********************************调度功能函数****************************************/
-std::vector<MSFlowEntry> splitFlowEntry_with_subtask( MSFlowEntry fe, unsigned int i,
-                                    MSTask onetask){   //将flowentry分割成多个flowentry
-    std::vector<MSFlowEntry> flowentries;
-    MSFlowEntry one_entry = onetask.flow[i];
-    if(i==onetask.flow_num-1){ //最后一个flow
-        if(hasFlowIntersection(fe,one_entry)){
-            MSFlowEntry cross_entry = findFlowIntersection_once(fe,one_entry);
-            flowentries.push_back(cross_entry);
-            if(!equalFlow(fe,cross_entry)){
-                flowentries.push_back(findFlowDifference(fe,cross_entry));
-            }
-        }
-    }else{
-        std::vector<MSFlowEntry> tempflowentries;
-        if(hasFlowIntersection(fe,one_entry)){
-            MSFlowEntry cross_entry = findFlowIntersection_once(fe,one_entry);
-            tempflowentries.push_back(cross_entry);
-            if(!equalFlow(fe,cross_entry)){
-                tempflowentries.push_back(findFlowDifference(fe,cross_entry));
-            }
-        }
-        for(std::vector<MSFlowEntry>::iterator it=tempflowentries.begin();
-                it!=tempflowentries.end();++it){
-            std::vector<MSFlowEntry> temp = splitFlowEntry_with_subtask(*it,i+1,onetask);
-            flowentries.insert(flowentries.end(),temp.begin(),temp.end());
+std::vector<MSFlowEntryPrioritized> prioritize_flowentry_with_onetask( 
+    MSFlowEntryPrioritized fe,
+    MSTask onetask)
+{
+    std::vector<MSFlowEntryPrioritized> temp_flowentries;
+    temp_flowentries.push_back(fe);
+    for(int i=0;i < onetask.flow_num;i++){ //遍历每个flow
+        if(hasFlowIntersection(fe.flow,onetask.flow[i])){
+            MSFlowEntryPrioritized cross_entry_prioritized;
+            cross_entry_prioritized.flow = findFlowIntersection_once(fe.flow,onetask.flow[i]);
+            cross_entry_prioritized.priority = fe.priority+1;
+            temp_flowentries.push_back(cross_entry_prioritized);
         }
     }
-    return flowentries;
+    return temp_flowentries;
 }
 
-std::vector<MSFlowEntry> splitFlowEntry_with_alltasks(MSFlowEntry fe, unsigned int i, 
-                                                        TaskMap &tasks){ //将flowentry分割成多个flowentry
-    std::vector<MSFlowEntry> flowentries;
+std::vector<MSFlowEntryPrioritized> prioritize_flowentry_with_alltasks( 
+    MSFlowEntryPrioritized fe,
+    int i,
+    TaskMap &tasks)
+{
+    std::vector<MSFlowEntryPrioritized> temp_flowentries;
     unsigned int map_size = tasks.size();
     std::map<unsigned int,MSTask>::iterator it = tasks.begin();
     if(i == map_size-1){ //最后一个任务
         std::advance(it, i);
-        std::vector<MSFlowEntry> temp = splitFlowEntry_with_subtask(fe,0,it->second);
+        std::vector<MSFlowEntryPrioritized> temp = prioritize_flowentry_with_onetask(fe,it->second);
         return temp;
     }else{
         std::advance(it, i);
-        std::vector<MSFlowEntry> temp = splitFlowEntry_with_subtask(fe,0,it->second);
-        for(std::vector<MSFlowEntry>::iterator it=temp.begin();
+        std::vector<MSFlowEntryPrioritized> temp = prioritize_flowentry_with_onetask(fe,it->second);
+        for(std::vector<MSFlowEntryPrioritized>::iterator it=temp.begin();
                 it!=temp.end();++it){
-            std::vector<MSFlowEntry> temp2 = splitFlowEntry_with_alltasks(*it,i+1,tasks);
-            flowentries.insert(flowentries.end(),temp2.begin(),temp2.end());
+            std::vector<MSFlowEntryPrioritized> temp2 = prioritize_flowentry_with_alltasks(*it,i+1,tasks);
+            temp_flowentries.insert(temp_flowentries.end(),temp2.begin(),temp2.end());
         }
     }
-    return flowentries;
+    return temp_flowentries;
 }
 
-std::map<MSFlowEntry,std::vector<unsigned int> &>  getMeasurementObject(TaskMap &tasks){ //获取测量对象碎片化集合
-    //input
-    std::map<MSFlowEntry,std::vector<unsigned int>& > flow_task; //flow对应的task
-    //分割flow
+
+int findMSFlowEntryPriority(MSFlowEntry fe, std::vector<MSFlowEntryPrioritized>& flowentry_prioritized){
+    for(int i=0;i<flowentry_prioritized.size();++i){
+        if(equalFlow(fe,flowentry_prioritized[i].flow)){
+            return i;
+        }
+    }
+    return -1;
+}
+
+// 查找一个任务中每个流规则包含的交集流规则
+std::vector<std::vector<MSFlowEntryPrioritized>> findAllCrossMSFlowEntryPriority(MSTask task, std::vector<MSFlowEntryPrioritized>& flowentry_prioritized){
+    std::vector<std::vector<MSFlowEntryPrioritized>> crossset;
+    for(int i=0;i<task.flow_num;i++){
+        std::vector<MSFlowEntryPrioritized> temp;
+        for(int j=0;j<flowentry_prioritized.size();j++){
+            if(contains(task.flow[i],flowentry_prioritized[j].flow)){
+                temp.push_back(flowentry_prioritized[j]);
+            }
+        }
+        std::sort(temp.begin(),temp.end(),[](MSFlowEntryPrioritized a, MSFlowEntryPrioritized b){return a.priority < b.priority;});
+        crossset.push_back(temp);
+    }
+    return crossset;
+}
+
+//查找一个任务中的一个流规则对应交集流规则集合中是否存在给定优先级的流规则
+bool haveCrossMSFlowEntryByPriority(std::vector<MSFlowEntryPrioritized>& ordered_crossset, int priority){
+    for(int i=0;i<ordered_crossset.size();i++){
+        if(ordered_crossset[i].priority == priority){
+            return true;
+        }
+    }
+    return false;
+}
+
+//找到一个任务中的一个流规则对应交集流规则集合中所有给定优先级的流规则
+std::vector<MSFlowEntryPrioritized> findCrossMSFlowEntryByPriority(std::vector<MSFlowEntryPrioritized>& ordered_crossset, int priority){
+    std::vector<MSFlowEntryPrioritized> temp;
+    for(int i=0;i<ordered_crossset.size();i++){
+        if(ordered_crossset[i].priority == priority){
+            temp.push_back(ordered_crossset[i]);
+        }
+    }
+    return temp;
+}
+
+//根据交集流规则集合，生成一个流规则分割后流规则集合
+std::vector<std::vector<MSFlowEntryPrioritized>> splitedMSFlowEntry(std::vector<MSFlowEntryPrioritized>& ordered_crossset){
+    std::vector<std::vector<MSFlowEntryPrioritized>> flow_splited; // cross --> crosses to eliminate
+    int lower = ordered_crossset[0].priority;
+    int higher = ordered_crossset[ordered_crossset.size()-1].priority;
+    int greater = lower+1;
+    std::vector<MSFlowEntryPrioritized> temp_lower = findCrossMSFlowEntryByPriority(ordered_crossset,lower);
+    while(greater<=higher){
+        while(!haveCrossMSFlowEntryByPriority(ordered_crossset,greater)){
+            greater++;
+        }
+        std::vector<MSFlowEntryPrioritized> temp_higher = findCrossMSFlowEntryByPriority(ordered_crossset,greater);
+        for(int i=0;i<temp_lower.size();i++){
+            std::vector<MSFlowEntryPrioritized> temp = temp_higher;
+            temp.insert(temp.begin(),temp_lower[i]);
+            flow_splited.push_back(temp);
+        }
+        temp_lower = temp_higher;
+        greater = greater+1;
+    }
+    for(int i=0;i<temp_lower.size();i++){
+        std::vector<MSFlowEntryPrioritized> temp;
+        temp.push_back(temp_lower[i]);
+        flow_splited.push_back(temp);
+    }
+    return flow_splited;
+}
+
+
+std::map<MSFlowEntryPrioritized,std::vector<unsigned int> >  getMeasurementObject(TaskMap &tasks, std::map<MSFlowEntryPrioritized,std::vector<MSFlowEntryPrioritized> > &flowdifference_map){ //获取测量对象碎片化集合
+    //1.求交集
+    MSFlowEntryPrioritized fe;
+    fe.flow.direction = -1;
+    fe.priority = 0;
+    std::vector<MSFlowEntryPrioritized> flowentries = prioritize_flowentry_with_alltasks(fe,0,tasks);
+    flowentries.erase(flowentries.begin());
+
+    //2.去重
+    std::set<int> to_delete;
+    for(int i=0;i<flowentries.size();i++){
+        for(int j=0;j<flowentries.size();j++){
+            if(j!=i && contains(flowentries[i].flow, flowentries[j].flow ) && flowentries[i].priority >= flowentries[j].priority){
+                to_delete.insert(j);
+            }
+        }
+    }
+    std::vector<int> sorted_to_delete(to_delete.begin(), to_delete.end());
+    std::sort(sorted_to_delete.begin(), sorted_to_delete.end());
+    for(int i=sorted_to_delete.size()-1;i>=0;i--){
+        flowentries.erase(flowentries.begin()+sorted_to_delete[i]);
+    }
+
+    //3.获取每个任务的flowentry的差集表示
+    std::map<unsigned int,std::vector<std::vector<std::vector<MSFlowEntryPrioritized>>> > task_flowentry_splited; //任务 - flowentry列表
     for(TaskMap::iterator it = tasks.begin();
                 it!=tasks.end();++it){ //遍历所有的task
-        for(int j=0;j<it->second.flow_num;++j){ //遍历每个flow
-            std::vector<MSFlowEntry> flowentries = splitFlowEntry_with_alltasks(it->second.flow[j],0,tasks);
-            for(std::vector<MSFlowEntry>::iterator it2 = flowentries.begin();
-                    it2!=flowentries.end();++it2){ //遍历每个分割后的flow
-                if(flow_task.find(*it2) == flow_task.end()){ //如果map中没有这个flow
+        std::vector<std::vector<MSFlowEntryPrioritized>> onetask_cross 
+                    = findAllCrossMSFlowEntryPriority(it->second,flowentries);//获取一个任务中每个流规则包含的交集流规则
+        for(int i=0;i<onetask_cross.size();i++){
+            std::vector<std::vector<MSFlowEntryPrioritized>> oneflowentry_splited 
+                        = splitedMSFlowEntry(onetask_cross[i]);//获取一个流规则分割后流规则集合
+            task_flowentry_splited[it->first].push_back(oneflowentry_splited);
+        }
+    }
+    //4.获取所有分割后flowentry的差集集合，即测量目标单元的集合;以及对应的任务列表
+    std::map<MSFlowEntryPrioritized,std::vector<unsigned int> > flow_task; 
+    // std::map<MSFlowEntryPrioritized,std::vector<MSFlowEntryPrioritized> > flowdifference_map; 
+    for(std::map<unsigned int,std::vector<std::vector<std::vector<MSFlowEntryPrioritized>>> >::iterator it = task_flowentry_splited.begin();
+                it!=task_flowentry_splited.end();++it){ //遍历所有的task
+        for(int i=0;i<it->second.size();i++){
+            std::vector<std::vector<MSFlowEntryPrioritized>> oneflowentry_splited = it->second[i];
+            for(int j=0;j<oneflowentry_splited.size();j++){
+                std::vector<MSFlowEntryPrioritized> oneflowentry_difference = oneflowentry_splited[j];
+                if(flowdifference_map.find(oneflowentry_difference[0]) == flowdifference_map.end()){ //如果map中没有这个oneflowentry_difference
                     std::vector<unsigned int> temp;
-                    temp.push_back(it->second.task_id);
-                    flow_task.insert(std::pair<MSFlowEntry,std::vector<unsigned int>& >(*it2,temp));
+                    temp.push_back(it->first);
+                    flow_task.insert(std::make_pair(oneflowentry_difference[0],temp));
+                    flowdifference_map.insert(std::make_pair(oneflowentry_difference[0],oneflowentry_difference));
                 }else{ //如果flow_task中有这个flow
-                    flow_task[*it2].push_back(it->second.task_id);
+                    flow_task[oneflowentry_difference[0]].push_back(it->first);
                 }
             }
         }
@@ -186,7 +292,8 @@ std::map<unsigned int, float> measureTaskRatio(std::map<MSFlowEntry,std::vector<
 
 std::map<MSFlowEntry, float> measureFlowTrafficRate(std::map<MSFlowEntry,std::vector<unsigned int> > &flow_task){
     std::map<MSFlowEntry, float> traffic_rate;  //FLowEntry - 流量速率
-
+    //计算每个flow的流量速率
+    
 
 
     return traffic_rate;

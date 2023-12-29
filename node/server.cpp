@@ -64,6 +64,7 @@ void *executeCommands(void *arg)
                 addFlowFilter(
                     cur_cmd.args.add_flow_arg.port_id,
                     cur_cmd.args.add_flow_arg.markid,
+                    cur_cmd.args.add_flow_arg.priority,
                     cur_cmd.args.add_flow_arg.src_ip,
                     cur_cmd.args.add_flow_arg.src_mask,
                     cur_cmd.args.add_flow_arg.dest_ip,

@@ -46,11 +46,11 @@ void deleteMSSubTask(unsigned int subtask_id)
 }
 
 // Add a flow rule to the specified queue
-int addFlowFilter(uint16_t port_id, uint32_t markid, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask)
+int addFlowFilter(uint16_t port_id, uint32_t markid,uint32_t priority, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask)
 {
     printf("addFlowToQueue\n");
     struct rte_flow_error error;
-    flow_id *flow = generate_ipv4_flow_only(port_id, markid,
+    flow_id *flow = generate_ipv4_flow_only(port_id, markid,priority,
                                        src_ip, src_mask,
                                        dest_ip, dest_mask, &error);
     /* >8 End of create flow and the flow rule. */
@@ -145,14 +145,18 @@ int handle_packet_per_core(void *arg)
 {
     unsigned int lcore_id = rte_lcore_id();
     // std::cout << "startup lcore " << lcore_id << std::endl;
-    struct rte_mbuf *mbuf;
+    struct rte_mbuf *mbufs[MAX_DEQUEUE_PACKETS];
     int record = 0;
     MSSubTaskRuntimeNode * current;
+    unsigned int available;
+    unsigned int dequeue_count;
     while (1)
     {
-        // 从环形缓冲区中取出一个报文
-        if (rte_ring_dequeue(rings[lcore_id], (void **)&mbuf) == 0)
-        {
+        // 从环形缓冲区中取出报文
+        dequeue_count = rte_ring_dequeue_bulk(rings[lcore_id], (void**)mbufs, MAX_DEQUEUE_PACKETS, &available);
+        // 处理出队的报文
+        for (unsigned int i = 0; i < dequeue_count; i++) {
+            struct rte_mbuf *mbuf = mbufs[i];
             current = _handlers_[lcore_id].head;
             while (current != NULL)
             {
@@ -164,7 +168,6 @@ int handle_packet_per_core(void *arg)
                     }
                 }
                 current = current->next;
-                // printf("current is not null\n");
             }
             rte_pktmbuf_free(mbuf);
         }
@@ -182,25 +185,6 @@ int handle_packet_per_core(void *arg)
                 case DELETE_SUBTASK:
                     deleteMSSubTaskRuntime(_command_queues[lcore_id].queue[k].args.del_task_arg.subtask_id);
                     break;
-                // case ADD_QUEUE_TO_CORE:
-                //     addQueueToCore(_command_queues[lcore_id].queue[k].args.add_queue_arg.queueid,
-                //                    _command_queues[lcore_id].queue[k].args.add_queue_arg.coreid);
-                //     break;
-                // case DELETE_QUEUE_FROM_CORE:
-                //     deleteQueueFromCore(_command_queues[lcore_id].queue[k].args.del_queue_arg.queueid,
-                //                         _command_queues[lcore_id].queue[k].args.del_queue_arg.coreid);
-                //     break;
-                // case DUMP_PLUGIN_RESULT:
-                // {
-                //     PluginRuntimeNode *node;
-                //     getPluginRuntime(_command_queues[lcore_id].queue[k].args.dump_result_arg.pluginid,node);
-                //     PluginRuntimeDumps *nodedump = (PluginRuntimeDumps *)malloc(sizeof(PluginRuntimeDumps));
-                //     nodedump->node = node;
-                //     nodedump->filename = _command_queues[lcore_id].queue[k].args.dump_result_arg.filename;
-                //     enqueuePluginRuntimeNode(nodedump);
-                //     break;
-                // }
-
                 default:
                     break;
                 }
@@ -255,7 +239,6 @@ int write_core_thread(void *arg){
         dequeueMSSubTaskRuntimeNodeDump();
     }
 }
-
 
 // Main thread to deploy child threads to each core
 void run()

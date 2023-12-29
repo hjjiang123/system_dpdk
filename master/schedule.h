@@ -5,6 +5,8 @@
 #include <queue>
 #include <iostream>
 #include <vector>
+#include <set>
+#include <algorithm>
 #include "../task.h"
 #include "../node/plugin.h"
 typedef struct FlowEntryDupInfo{
@@ -14,10 +16,15 @@ typedef struct FlowEntryDupInfo{
     MSFlowEntry flow[16];
 } FlowEntryDupInfo;
 
-MSFlowEntry findFlowDifference(MSFlowEntry fe1, MSFlowEntry fe2); // fe1-fe2
+// MSFlowEntry findFlowDifference(MSFlowEntry fe1, MSFlowEntry fe2); // fe1-fe2
 bool equalFlow(MSFlowEntry fe1, MSFlowEntry fe2); // fe1==fe2
 MSFlowEntry findFlowIntersection_once(MSFlowEntry fe1, MSFlowEntry fe2);// fe1&fe2
 bool hasFlowIntersection(MSFlowEntry fe1, MSFlowEntry fe2);// fe1&fe2!=0
+bool contains(MSFlowEntry fe1, MSFlowEntry fe2);// fe1 contains fe2
+
+int findMSFlowEntryPriority(MSFlowEntry fe, std::vector<MSFlowEntryPrioritized>& flowentry_prioritized);
+std::vector<std::vector<MSFlowEntryPrioritized>> switchToCross(MSTask task, std::vector<MSFlowEntryPrioritized>& flowentry_prioritized);
+
 
 //维护待加载的任务
 

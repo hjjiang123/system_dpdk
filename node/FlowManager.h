@@ -29,7 +29,7 @@ struct flowfilter_entry{
 	unsigned short dst_port;
 };
 struct flow_id*
-generate_ipv4_flow_only(uint16_t port_id, uint32_t markid,
+generate_ipv4_flow_only(uint16_t port_id, uint32_t markid, uint32_t priority,
 		uint32_t src_ip, uint32_t src_mask,
 		uint32_t dest_ip, uint32_t dest_mask,
 		struct rte_flow_error *error);

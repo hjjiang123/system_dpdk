@@ -13,6 +13,10 @@ typedef struct MSFlowEntry{
     unsigned short dst_port;
     unsigned char protocol;
 } MSFlowEntry;
+typedef struct MSFlowEntryPrioritized{
+    MSFlowEntry flow;
+    unsigned int priority;
+} MSFlowEntryPrioritized;
 
 //用户提交任务
 typedef struct MSTask{

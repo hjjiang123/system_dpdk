@@ -65,6 +65,7 @@
         "stop_token": "cpp",
         "unordered_set": "cpp",
         "queue": "cpp",
-        "cstring": "cpp"
+        "cstring": "cpp",
+        "set": "cpp"
     }
 }

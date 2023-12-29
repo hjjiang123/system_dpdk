@@ -108,7 +108,7 @@ struct flow_id *query_flow_id(int id){
 
 /* Function responsible for creating the flow rule. 8< */
 struct flow_id*
-generate_ipv4_flow_only(uint16_t port_id, uint32_t markid,
+generate_ipv4_flow_only(uint16_t port_id, uint32_t markid, uint32_t priority,
 		uint32_t src_ip, uint32_t src_mask,
 		uint32_t dest_ip, uint32_t dest_mask,
 		struct rte_flow_error *error)
@@ -130,6 +130,7 @@ generate_ipv4_flow_only(uint16_t port_id, uint32_t markid,
 	/* Set the rule attribute, only ingress packets will be checked. 8< */
 	memset(&attr, 0, sizeof(struct rte_flow_attr));
 	attr.ingress = 1;
+	attr.priority = priority;
 	/* >8 End of setting the rule attribute. */
 
 	/*

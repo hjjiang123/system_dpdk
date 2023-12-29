@@ -33,7 +33,7 @@ void unregisterSubTask(unsigned int subtask_id);
 
 void deleteMSSubTask(unsigned int subtask_id);
 
-int addFlowFilter(uint16_t port_id, uint32_t markid, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask);
+int addFlowFilter(uint16_t port_id, uint32_t markid, uint32_t priority, uint32_t src_ip, uint32_t src_mask, uint32_t dest_ip, uint32_t dest_mask);
 
 void deleteFlowFilter(int id);
 
