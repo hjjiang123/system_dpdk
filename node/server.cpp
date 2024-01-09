@@ -44,21 +44,21 @@ void *executeCommands(void *arg)
         pthread_mutex_unlock(&mutex);
         switch(cur_cmd.type){
             case REGISTER_SUBTASK:
-                registerSubTask(cur_cmd.args.reg_task_arg);
+                MSSubTask *subtask = (MSSubTask *)malloc(sizeof(MSSubTask)); 
+                memcpy(subtask, &cur_cmd.args.reg_task_arg, sizeof(MSSubTask));
+                registerSubTask(subtask);
                 break;
             case UNREGISTE_SUBTASK:
                 unregisterSubTask(cur_cmd.args.unreg_task_arg.subtask_id);
                 break;
             case ADD_SUBTASK:
-                MSSubTaskRuntimeNode *trtnode = allocateMSSubTaskRuntime(cur_cmd.args.add_task_arg.subtask_id);
-                Command add_task_self_cmd={
-                    .type=ADD_SUBTASK_SELF,
-                    .args.add_task_self_arg.trtnode=trtnode
-                };
-                push_Command(add_task_self_cmd);
+                MSSubTask *subtask = _TM.getMSSubTaskHandleInfo_fromid(cur_cmd.args.add_task_arg.subtask_id)->task;
+                resolve_task_thread(subtask);
                 break;
             case DELETE_SUBTASK:
-                push_Command(cur_cmd);
+                if(get_task_running(cur_cmd.args.del_task_arg.subtask_id)){
+                    set_task_stopped_forced(cur_cmd.args.del_task_arg.subtask_id);
+                }
                 break;
             case ADD_FLOW:{
                 addFlowFilter(
@@ -75,15 +75,11 @@ void *executeCommands(void *arg)
             case DELETE_FLOW:
                 deleteFlowFilter(cur_cmd.args.del_flow_arg.id);
                 break;
-            // case ADD_QUEUE_TO_CORE:
-            //     push_Command(cur_cmd);
-            //     break;
-            // case DELETE_QUEUE_FROM_CORE:
-            //     push_Command(cur_cmd);
-            //     break;
-            // case DUMP_PLUGIN_RESULT:
-            //     push_Command(cur_cmd);
-            //     break;
+            case MONITOR_ALL_SUBTASKS:
+                for(int i=0;i<cur_cmd.args.monitor_task_arg.num;i++){
+                    SubTaskPerformance sptf = get_subtask_performance(cur_cmd.args.monitor_task_arg.subtask_ids[i]);
+                }
+                break;
             default:
                 break;
         }

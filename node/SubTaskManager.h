@@ -1,5 +1,5 @@
-#ifndef PLUGIN_MANAGER_H
-#define PLUGIN_MANAGER_H
+#ifndef SUBTASK_MANAGER_H
+#define SUBTASK_MANAGER_H
 #include <stdio.h>
 #include <vector>
 #include <dlfcn.h>
@@ -10,7 +10,9 @@
 
 typedef void* MSSubTaskHandle;
 struct MSSubTaskHandleInfo{
-    MSSubTask task;
+    MSSubTask *task;
+    bool run; //是否在运行
+    pthread_mutex_t run_mt; // 互斥量
     MSSubTaskHandle handle;
 };
 class MSSubTaskManager;
@@ -20,7 +22,7 @@ class MSSubTaskManager{
 public:
     MSSubTaskManager();
     ~MSSubTaskManager();
-    int loadTask(MSSubTask task);
+    int loadTask(MSSubTask *task);
     bool unloadTask(const char filename[]);
     bool unloadTask(unsigned int id);
     template<typename T> 
@@ -34,7 +36,7 @@ public:
         return reinterpret_cast<T>(proc);
     }
     MSSubTaskHandle getSubTaskHandle(const char filename[]);
-    MSSubTaskHandleInfo *getMSSubTaskHandleInfo_fromid(unsigned int id);
+    MSSubTaskHandleInfo * getMSSubTaskHandleInfo_fromid(unsigned int id);
 private:
     std::vector<MSSubTaskHandleInfo> tasks_;
     const char* PLUGIN_DIR = "./plugin";

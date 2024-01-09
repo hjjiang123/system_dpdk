@@ -1,22 +1,25 @@
 #include "schedule.h"
 
-typedef std::map<unsigned int, std::map<unsigned int,MSSubTask> > SubTaskMap; //任务号 - 子任务集合
-typedef std::map<unsigned int,MSTask> TaskMap; //任务号 - 任务集合
 
+ 
 const unsigned int _resource[10][40]=
                 {100,100,100,100,100,100,100,100,100,100,};
 const unsigned int _host_num = 10;
 const unsigned int _core_num = 40*10;
 
-std::map<unsigned int,MSTask> tasks;  //维护当前已加载的任务
+typedef std::map<unsigned int,MSTask> TaskMap; //任务号 - 任务集合 
+TaskMap tasks;  //维护当前已加载的任务
 
+typedef std::map<unsigned int, std::map<unsigned int,MSSubTask> > SubTaskMap; //任务号 - 子任务集合
 SubTaskMap subtasks; //维护当前已调度的子任务
+
+std::map<MSFlowEntryPrioritized,std::vector<unsigned int> > flow_task; //维护每个流规则对应的任务集合
 
 std::queue<MSTask> taskQueue; //维护待加载的任务
 std::mutex queueMutex; //维护待加载的任务的互斥锁
 
 //注册MSTask并分配task_id
-void registerMSTask(MSTask& task) {
+unsigned int registerMSTask(MSTask& task) {
     //分配一个不重复的task_id
     int task_id = 0;
     while (tasks.find(task_id) != tasks.end()) {
@@ -26,6 +29,7 @@ void registerMSTask(MSTask& task) {
     task.task_id = task_id;
     tasks[task_id] = task;
     subtasks[task_id] = std::map<unsigned int,MSSubTask>();
+    return task_id;
 }
 
 //注销MSTask并释放task_id
@@ -224,7 +228,8 @@ std::vector<std::vector<MSFlowEntryPrioritized>> splitedMSFlowEntry(std::vector<
 }
 
 
-std::map<MSFlowEntryPrioritized,std::vector<unsigned int> >  getMeasurementObject(TaskMap &tasks, std::map<MSFlowEntryPrioritized,std::vector<MSFlowEntryPrioritized> > &flowdifference_map){ //获取测量对象碎片化集合
+// 获取测量对象碎片化集合
+void getMeasurementObject(TaskMap &tasks, std::map<MSFlowEntryPrioritized,std::vector<MSFlowEntryPrioritized> > &flowdifference_map){ //获取测量对象碎片化集合
     //1.求交集
     MSFlowEntryPrioritized fe;
     fe.flow.direction = -1;
@@ -260,8 +265,6 @@ std::map<MSFlowEntryPrioritized,std::vector<unsigned int> >  getMeasurementObjec
         }
     }
     //4.获取所有分割后flowentry的差集集合，即测量目标单元的集合;以及对应的任务列表
-    std::map<MSFlowEntryPrioritized,std::vector<unsigned int> > flow_task; 
-    // std::map<MSFlowEntryPrioritized,std::vector<MSFlowEntryPrioritized> > flowdifference_map; 
     for(std::map<unsigned int,std::vector<std::vector<std::vector<MSFlowEntryPrioritized>>> >::iterator it = task_flowentry_splited.begin();
                 it!=task_flowentry_splited.end();++it){ //遍历所有的task
         for(int i=0;i<it->second.size();i++){
@@ -279,43 +282,169 @@ std::map<MSFlowEntryPrioritized,std::vector<unsigned int> >  getMeasurementObjec
             }
         }
     }
-    return flow_task;
 }
 
-std::map<unsigned int, float> measureTaskRatio(std::map<MSFlowEntry,std::vector<unsigned int> > &flow_task){
-    std::map<unsigned int, float> ratio;  //任务 - 流量负载比
-
-
-
-    return ratio;
-}
-
-std::map<MSFlowEntry, float> measureFlowTrafficRate(std::map<MSFlowEntry,std::vector<unsigned int> > &flow_task){
-    std::map<MSFlowEntry, float> traffic_rate;  //FLowEntry - 流量速率
-    //计算每个flow的流量速率
+//获取每个任务的流量负载比
+std::map<unsigned int, float> measureTaskRatio(
+    std::vector<std::vector<SubTaskPerformance>> &stpfs){
     
+    std::map<unsigned int, float> ratios;  //任务 - 流量负载比
+    for(int i=0;i<stpfs.size();i++){
+        for(int j=0; j<stpfs[i].size(); j++){
+            unsigned int taskid = stpfs[i][j].task_id;
+            unsigned long long r = stpfs[i][j].tsc_nums[stpfs[i][j].pos] / stpfs[i][j].recore_tscs[stpfs[i][j].pos];
+            if (ratios.find(taskid) != ratios.end()) {
+                ratios[taskid] += r;
+            } else {
+                ratios[taskid] = r;
+            }
+        }
+    }
+    // Iterate over ratios
+    for (const auto& pair : ratios) {
+        unsigned int taskid = pair.first;
+        ratios[taskid] /= subtasks[taskid].size();
+    }
 
+    return ratios;
+}
 
+// 单节点上每个MSFlowEntryPrioritized的流量速率
+std::map<MSFlowEntryPrioritized, float> measureFlowTrafficRateOneHost(
+    std::vector<SubTaskPerformance> &stpf){
+
+    std::map<MSFlowEntryPrioritized, float> traffic_rate;  //FLowEntry - 流量速率
+    //计算每个MSFlowEntryPrioritized的流量速率
+    for(int i=0; i<stpf.size(); i++){
+        unsigned int taskid = stpf[i].task_id;
+        unsigned int subtaskid = stpf[i].inner_subtask_id;
+        MSFlowEntryPrioritized msfep = subtasks[taskid][subtaskid].flow[0];
+        traffic_rate[msfep] = stpf[i].recv_nums[stpf[i].pos] / stpf[i].recore_tscs[stpf[i].pos];
+    }
+    return traffic_rate;
+}
+
+// 所有节点上每个MSFlowEntryPrioritized的流量速率
+std::map<MSFlowEntryPrioritized, float> measureFlowTrafficRateAllHosts(
+    std::vector<std::vector<SubTaskPerformance>> &stpfs){
+
+    std::map<MSFlowEntryPrioritized, float> traffic_rate;
+    for(int i=0; i<stpfs.size(); i++){
+        std::map<MSFlowEntryPrioritized, float> rate = measureFlowTrafficRateOneHost(stpfs[i]);
+        for (const auto& pair : rate) {
+            const MSFlowEntryPrioritized& key = pair.first;
+            float value = pair.second;
+            if (traffic_rate.find(key) != traffic_rate.end()) {
+                traffic_rate[key] += value;
+            } else {
+                traffic_rate[key] = value;
+            }
+        }
+    }
     return traffic_rate;
 }
 
 
-std::map<MSFlowEntry, float > getFlowTotalRatio( std::map<MSFlowEntry,std::vector<unsigned int> > &flow_task,
-                                            std::map<unsigned int, float> &ratios,
-                                            std::map<MSFlowEntry, float> &traffic_rate)
+// 获取每个MSFlowEntryPrioritized的CPU资源消耗=流量速率*流量负载比
+std::map<MSFlowEntryPrioritized, float> 
+getFlowTotalRatio(  std::map<unsigned int, float> &ratios,
+                    std::map<MSFlowEntryPrioritized, float> &traffic_rate)
 {
-    std::map<MSFlowEntry, float > flow_task_ratio; //flow对应的subtask的总ratio
+    std::map<MSFlowEntryPrioritized, float > flow_task_ratio; //flow对应的subtask的总ratio
     //计算每个flow对应的ratio
-    for(std::map<MSFlowEntry,std::vector<unsigned int> >::iterator it = flow_task.begin();
+    for(std::map<MSFlowEntryPrioritized,std::vector<unsigned int> >::iterator it = flow_task.begin();
                 it!=flow_task.end();++it){
         float r = 0;
         for(std::vector<unsigned int>::iterator it2 = it->second.begin();
                 it2!=it->second.end();++it2){
-            r += ratios[*it2]*traffic_rate[it->first];
+            r += ratios[*it2];
         }
-        flow_task_ratio.insert(std::pair<MSFlowEntry,float>(it->first,r));
+        r *= traffic_rate[it->first];
+        flow_task_ratio.insert(std::pair<MSFlowEntryPrioritized,float>(it->first,r));
     }
     return flow_task_ratio;
 }
+
+// 获取每个节点上每个核心的CPU资源消耗
+std::map<unsigned int, std::map<unsigned int, float> > 
+calcu_cpu_used_rate(  std::map<unsigned int, float> &ratios,
+                std::map<MSFlowEntryPrioritized, float> &traffic_rate){
+    
+    std::map<unsigned int, std::map<unsigned int, float> > cpu_used_rate; //节点 - 核心 - CPU资源消耗
+    
+    for (const auto& subtask : subtasks) {
+        unsigned int taskid = subtask.first;
+        for (const auto& pair : subtask.second) {
+            unsigned int subtaskid = pair.first;
+            unsigned int hostid = pair.second.host_id;
+            unsigned int coreid = pair.second.core_id;
+            float r = ratios[taskid] * traffic_rate[pair.second.flow[0]];
+            if (cpu_used_rate.find(hostid) != cpu_used_rate.end()) {
+                if (cpu_used_rate[hostid].find(coreid) != cpu_used_rate[hostid].end()) {
+                    cpu_used_rate[hostid][coreid] += r;
+                } else {
+                    cpu_used_rate[hostid][coreid] = r;
+                }
+            } else {
+                cpu_used_rate[hostid][coreid] = r;
+            }
+        }    
+    }   
+    return cpu_used_rate;
+}
+
+// 获取每个节点上每个节点的内存资源消耗
+std::map<unsigned int, unsigned long long> mem_used(){
+    std::map<unsigned int, unsigned long long> mem_used; //节点 - 内存资源消耗
+    for (const auto& subtask : subtasks) {
+        unsigned int taskid = subtask.first;
+        for (const auto& pair : subtask.second) {
+            unsigned int subtaskid = pair.first;
+            unsigned int hostid = pair.second.host_id;
+            unsigned long long mm = 0;
+            for(int i=0;i<pair.second.pi_num;i++){
+                CounterInfo ci = pair.second.pis[i].cnt_info;
+                mm += ci.rownum*ci.bucketnum*ci.bucketsize*ci.countersize;
+            }
+            if (mem_used.find(hostid) != mem_used.end()) {
+                mem_used[hostid] += mm;
+            } else {
+                mem_used[hostid] = mm;
+            }
+        }    
+    }
+    return mem_used;
+}
+
+/*
+调度新到来的一个任务
+*/
+std::map<unsigned int,std::vector<MSSubTask>> schedule_new_task(MSTask& mst){
+    // 1.注册任务，获取任务号
+    unsigned int taskid = registerMSTask(mst);
+    // 2.获取集群状态
+    // 2.1 获取任务运行性能数据
+    std::vector<std::vector<SubTaskPerformance>> stpfs = monitor();
+    // 2.2 获取集群资源消耗数据
+    std::map<unsigned int, float> ratios = measureTaskRatio(stpfs); //任务 - 流量负载比
+    std::map<MSFlowEntryPrioritized, float> traffic_rate = measureFlowTrafficRateAllHosts(stpfs); //FLowEntry - 流量速率
+    std::map<unsigned int, std::map<unsigned int, float> > used_cpu_rate = calcu_cpu_used_rate(ratios,traffic_rate);//节点 - 核心 - CPU资源消耗
+    std::map<unsigned int, unsigned long long> used_mem = mem_used();           //节点 - 内存资源消耗
+    // 3.判断任务是否可以分割？
+    if(mst.obj_split==0){ //不可分割
+        // 查找在当前集群中，该任务是否可以分配？
+        for (const auto& subtask : subtasks) {
+            for(const auto& pair : subtask.second){
+                if(contains(pair.second.flow[0].flow, MSFlowEntry fe2))
+            }
+        }
+    }
+    
+}
+
+
+/*
+重调度所有任务
+*/
 
 //建模求解

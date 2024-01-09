@@ -10,34 +10,26 @@ std::mutex _mt[2][MAX_CORE_NUMS]; //_mt[0] is used for _command_queues update, _
 
 struct rte_ring *rings[MAX_CORE_NUMS]; // 全局数组，用于存储每个线程的环形缓冲区
 
-
-
+uint64_t cpu_tsc;  //每秒的时钟周期数
 /************************************Utility Functions************************************/
 
-void registerSubTask(MSSubTask task)
+void registerSubTask(MSSubTask *task)
 {
     printf("registerPlugin\n");
     _TM.loadTask(task);
 }
 
-void unregisterSubTask(MSSubTask task)
+void unregisterSubTask(MSSubTask *task)
 {
-    _TM.unloadTask(task.filename);
+    _TM.unloadTask(task->filename);
 }
 
 void unregisterSubTask(unsigned int subtask_id)
 {
     printf("unregister Plugin\n");
     MSSubTaskHandleInfo *pi = _TM.getMSSubTaskHandleInfo_fromid(subtask_id);
-    _TM.unloadTask(pi->task.filename);
+    _TM.unloadTask(pi->task->filename);
 }
-
-// void addMSSubTask(unsigned int subtask_id)
-// {
-//     printf("addPlugin\n");
-//     addMSSubTaskRuntime(subtask_id);
-//     return;
-// }
 
 void deleteMSSubTask(unsigned int subtask_id)
 {
@@ -84,10 +76,6 @@ void deleteQueueFromCore(int queueid, int coreid)
     printf("deleteQueueFromCore\n");
     removeQueue(queueid, coreid);
 }
-// Dump the result of a running plugin
-void dumpResult(int pluginid, int coreid, char *filename)
-{
-}
 
 bool push_Command(Command c)
 {
@@ -101,18 +89,6 @@ bool push_Command(Command c)
     {
         lcore_id = c.args.del_task_arg.coreid;
     }
-    // else if (c.type == ADD_QUEUE_TO_CORE)
-    // {
-    //     lcore_id = c.args.add_queue_arg.coreid;
-    // }
-    // else if (c.type == DELETE_QUEUE_FROM_CORE)
-    // {
-    //     lcore_id = c.args.del_queue_arg.coreid;
-    // }
-    // else if (c.type == DUMP_PLUGIN_RESULT)
-    // {
-    //     lcore_id = c.args.dump_result_arg.coreid;
-    // }
     else if(c.type == ADD_SUBTASK_SELF){
         lcore_id = c.args.add_task_self_arg.trtnode->trt.subtask.core_id;
     }
@@ -138,6 +114,24 @@ bool push_Command(Command c)
     return true;
 }
 
+
+/************************************monitor Functions***************************************/
+SubTaskPerformance get_subtask_performance(unsigned int subtask_id){
+    SubTaskPerformance stpf;
+    MSSubTaskHandleInfo *pi = _TM.getMSSubTaskHandleInfo_fromid(subtask_id);
+    MSSubTask *ptt = pi->task;
+    pthread_mutex_lock(&ptt->monitor_mt);
+    stpf.task_id = ptt->id.id1.task_id;
+    stpf.inner_subtask_id = ptt->id.id1.subtask_id;
+    stpf.pos = ptt->pos;
+    memcpy(stpf.recore_tscs, ptt->recore_tscs, sizeof(unsigned long long)*60);
+    memcpy(stpf.recv_nums, ptt->recv_nums, sizeof(unsigned int)*60);
+    memcpy(stpf.tsc_nums, ptt->tsc_nums, sizeof(unsigned long long)*60);
+    pthread_mutex_unlock(&ptt->monitor_mt);
+    return stpf;
+}
+
+
 /************************************System Functions***************************************/
 
 // Daemon thread for each processing core
@@ -150,6 +144,11 @@ int handle_packet_per_core(void *arg)
     MSSubTaskRuntimeNode * current;
     unsigned int available;
     unsigned int dequeue_count;
+
+    uint64_t start, end, cycles;
+    uint64_t now_tsv=rte_rdtsc()+cpu_tsc;
+
+    MSSubTask *ptt;
     while (1)
     {
         // 从环形缓冲区中取出报文
@@ -162,16 +161,21 @@ int handle_packet_per_core(void *arg)
             {
                 if(mbuf->hash.fdir.hi & current->trt.pis[0].id.id2 ==
                     current->trt.pis[0].id.id2){
+                    start = rte_rdtsc();
+                    current->trt.recv_num ++;
                     int temp = current->trt.pis[0].func(mbuf, current->trt.pis[0].res);
                     while(temp != -1){
                         temp = current->trt.pis[temp].func(mbuf, current->trt.pis[temp].res);
                     }
+                    end = rte_rdtsc();
+                    current->trt.tsc_num += end - start;
                 }
                 current = current->next;
             }
             rte_pktmbuf_free(mbuf);
         }
-        if (record++ == 10000000)
+        // if (record++ == 10000000)
+        if (end > now_tsv)
         {
             _command_queues[lcore_id].mt.lock();
             int k = _command_queues[lcore_id].front;
@@ -179,20 +183,34 @@ int handle_packet_per_core(void *arg)
             {
                 switch (_command_queues[lcore_id].queue[k].type)
                 {
-                case ADD_SUBTASK_SELF:
-                    addMSSubTaskRuntime(_command_queues[lcore_id].queue[k].args.add_task_self_arg.trtnode);
-                    break;
-                case DELETE_SUBTASK:
-                    deleteMSSubTaskRuntime(_command_queues[lcore_id].queue[k].args.del_task_arg.subtask_id);
-                    break;
-                default:
-                    break;
+                    case ADD_SUBTASK_SELF:
+                        addMSSubTaskRuntime(_command_queues[lcore_id].queue[k].args.add_task_self_arg.trtnode);
+                        break;
+                    case DELETE_SUBTASK:
+                        deleteMSSubTaskRuntime(_command_queues[lcore_id].queue[k].args.del_task_arg.subtask_id);
+                        break;
+                    default:
+                        break;
                 }
                 k = (k + 1) % SOCKET_QUEUE_SIZE;
             }
             _command_queues[lcore_id].front = k;
             _command_queues[lcore_id].mt.unlock();
-            record = 0;
+
+            // 输出性能指标
+            current = _handlers_[lcore_id].head;
+            while (current != NULL){
+                ptt = current->trt.subtask;
+                pthread_mutex_lock(&ptt->monitor_mt);
+                ptt->recv_nums[ptt->pos] = current->trt.recv_num;
+                ptt->tsc_nums[ptt->pos] = current->trt.tsc_num;
+                ptt->recore_tscs[ptt->pos] = now_tsv;
+                ptt->pos = (ptt->pos + 1) % 60;
+                pthread_mutex_unlock(&ptt->monitor_mt);
+                current = current->next;
+            }
+            // record = 0;
+            now_tsv += cpu_tsc;
         }
         rte_pause();
     }
@@ -243,6 +261,9 @@ int write_core_thread(void *arg){
 // Main thread to deploy child threads to each core
 void run()
 {
+    //获取每秒的时钟周期数
+    cpu_tsc  = rte_get_tsc_hz();
+
     rte_flow_error error;
     for (int i = 2; i < _num_cores; i++)
     {
@@ -288,3 +309,8 @@ void run()
     rte_eth_dev_close(_port_id);
     rte_eal_cleanup();
 }
+
+
+
+
+

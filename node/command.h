@@ -29,6 +29,7 @@
 // #define ADD_QUEUE_TO_CORE 6
 // #define DELETE_QUEUE_FROM_CORE 7
 #define DUMP_SUBTASK_RESULT 6
+#define MONITOR_ALL_SUBTASKS 7
 
 /**
  * @brief Represents a command structure.
@@ -63,22 +64,13 @@ typedef struct {
         struct del_flow_arg{
             unsigned short id;
         } del_flow_arg; /**< Arguments for deleting a flow. */
-        // struct {
-        //     int queueid;
-        //     int coreid;
-        // } add_queue_arg; /**< Arguments for adding a queue. */
-        // struct {
-        //     int queueid;
-        //     int coreid;
-        // } del_queue_arg; /**< Arguments for deleting a queue. */
-        // struct {
-        //     int taskid;
-        //     int coreid;
-        //     char filename[100];
-        // } dump_result_arg; /**< Arguments for dumping the result of a task. */
         struct add_task_self_arg{
             MSSubTaskRuntimeNode *trtnode;
         } add_task_self_arg;
+        struct monitor_task_arg{
+            int num;
+            unsigned int subtask_ids[64];
+        } monitor_task_arg;
     } args; /**< The arguments of the command. */
 } Command;
 

@@ -9,7 +9,7 @@
 #include <rte_hash_crc.h>
 #include <rte_mbuf.h>
 #include "FlowManager.h"
-#include "PluginManager.h"
+#include "SubTaskManager.h"
 #include "PluginRuntimeManager.h"
 #include "QueueManager.h"
 #include "command.h"
@@ -23,9 +23,9 @@ struct lcoreCommandQueue {
     std::mutex mt;
 };
 
-void registerSubTask(MSSubTask task);
+void registerSubTask(MSSubTask *task);
 
-void unregisterSubTask(MSSubTask task);
+void unregisterSubTask(MSSubTask *task);
 
 void unregisterSubTask(unsigned int subtask_id);
 
@@ -42,6 +42,8 @@ void addQueueToCore(int queueid, int coreid);
 void deleteQueueFromCore(int queueid, int coreid);
 
 bool push_Command(Command c);
+
+SubTaskPerformance get_subtask_performance(unsigned int subtask_id);
 
 void configurePort(unsigned int port_id);
 

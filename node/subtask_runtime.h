@@ -2,7 +2,7 @@
 #define SUBTASK_RUNTIME_H
 #include <sys/stat.h>
 #include "plugin.h"
-#include "PluginManager.h"
+#include "SubTaskManager.h"
 #include "config.h"
 #include "../task.h"
 typedef struct MSSubTaskRuntimeNode

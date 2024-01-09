@@ -7,7 +7,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include "dataplane.h"
-
+#include "subtask_resolve.h"
 /********************************************
  * 监听用户指令线程
  ********************************************/

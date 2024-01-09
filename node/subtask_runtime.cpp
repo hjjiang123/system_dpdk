@@ -54,50 +54,47 @@ MSSubTaskRuntimeNode * allocateMSSubTaskRuntime(unsigned int subtask_id)
     MSSubTaskRuntime trt;
     MSSubTaskHandleInfo *pi = _TM.getMSSubTaskHandleInfo_fromid(subtask_id);
     trt.subtask = pi->task;
-    trt.pi_num=pi->task.pi_num;
-    for(int i=0;i<pi->task.pi_num;i++){
-        for(int j=0;j<pi->task.pi_num;j++){
-            trt.pi_relations[i][j]=pi->task.pi_relations[i][j];
+    trt.pi_num=pi->task->pi_num;
+    for(int i=0;i<pi->task->pi_num;i++){
+        for(int j=0;j<pi->task->pi_num;j++){
+            trt.pi_relations[i][j]=pi->task->pi_relations[i][j];
         }
     }
     // Allocate resources for the plugins
-    for(int n=0;n<pi->task.pi_num;n++){
+    for(int n=0;n<pi->task->pi_num;n++){
         // Allocate memory for the result
-        Byte ****res = (Byte ****)malloc(pi->task.pis[n].cnt_info.rownum * sizeof(Byte ***));
-        for (int i = 0; i < pi->task.pis[n].cnt_info.rownum; i++)
+        Byte ****res = (Byte ****)malloc(pi->task->pis[n].cnt_info.rownum * sizeof(Byte ***));
+        for (int i = 0; i < pi->task->pis[n].cnt_info.rownum; i++)
         {
-            res[i] = (Byte ***)malloc(pi->task.pis[n].cnt_info.bucketnum * sizeof(Byte **));
-            for (int j = 0; j < pi->task.pis[n].cnt_info.bucketnum; j++)
+            res[i] = (Byte ***)malloc(pi->task->pis[n].cnt_info.bucketnum * sizeof(Byte **));
+            for (int j = 0; j < pi->task->pis[n].cnt_info.bucketnum; j++)
             {
-                res[i][j] = (Byte **)malloc(pi->task.pis[n].cnt_info.bucketsize * sizeof(Byte *));
-                for (int k = 0; k < pi->task.pis[n].cnt_info.bucketsize; k++)
+                res[i][j] = (Byte **)malloc(pi->task->pis[n].cnt_info.bucketsize * sizeof(Byte *));
+                for (int k = 0; k < pi->task->pis[n].cnt_info.bucketsize; k++)
                 {
-                    res[i][j][k] = (Byte *)malloc(pi->task.pis[n].cnt_info.countersize * sizeof(Byte));
+                    res[i][j][k] = (Byte *)malloc(pi->task->pis[n].cnt_info.countersize * sizeof(Byte));
                 }
             }
         }
         // Get the function pointer for the plugin
-        PF myFunctionPtr = (PF)_TM.getFunction<PF>(pi->task.pis[n].filename, pi->task.pis[n].funcname);
+        PF myFunctionPtr = (PF)_TM.getFunction<PF>(pi->task->pis[n].filename, pi->task->pis[n].funcname);
         // Create a plugin runtime object
         
         trt.pis[n].res = res;
-        trt.pis[n].id.id1.core_id = pi->task.core_id;
-        unsigned int subtask_index = get_plugin_index(pi->task.core_id);
+        trt.pis[n].id.id1.core_id = pi->task->core_id;
+        unsigned int subtask_index = get_plugin_index(pi->task->core_id);
         trt.pis[n].id.id1.subtask_index = subtask_index;
-        trt.pis[n].id.id1.flip = pi->task.flip == 1 ? subtask_index:0;
+        trt.pis[n].id.id1.flip = pi->task->flip == 1 ? subtask_index:0;
         trt.pis[n].id.id1.reserve = 0;
-        trt.pis[n].func = myFunctionPtr; 
+        trt.pis[n].func = myFunctionPtr;
     }
     trtnode->trt=trt;
     trtnode->next=NULL;
     return trtnode;
-    // printf("addPluginRuntime: %d\n", 2);
-    
-    // printf("addPluginRuntime: %d\n", _handlers_[coreid].tail->data.id);
 }
 void addMSSubTaskRuntime(MSSubTaskRuntimeNode *trtnode)
 {
-    int coreid = trtnode->trt.subtask.core_id;
+    int coreid = trtnode->trt.subtask->core_id;
     if (_handlers_[coreid].head == NULL)
     {
         _handlers_[coreid].head = trtnode;
@@ -112,12 +109,12 @@ void addMSSubTaskRuntime(MSSubTaskRuntimeNode *trtnode)
 bool popMSSubTaskRuntime(unsigned int subtask_id, MSSubTaskRuntimeNode *node)
 {
     MSSubTaskHandleInfo *pi = _TM.getMSSubTaskHandleInfo_fromid(subtask_id);
-    int coreid = pi->task.core_id;
+    int coreid = pi->task->core_id;
     node = _handlers_[coreid].head;
     MSSubTaskRuntimeNode *previous = NULL;
     while (node != NULL)
     {
-        if (node->trt.subtask.id.id2 == subtask_id)
+        if (node->trt.subtask->id.id2 == subtask_id)
         {
             if (previous == NULL)
             {
@@ -143,11 +140,11 @@ bool popMSSubTaskRuntime(unsigned int subtask_id, MSSubTaskRuntimeNode *node)
 bool getMSSubTaskRuntimeNode(unsigned int subtask_id, MSSubTaskRuntimeNode *node)
 {
     MSSubTaskHandleInfo *pi = _TM.getMSSubTaskHandleInfo_fromid(subtask_id);
-    int coreid = pi->task.core_id;
+    int coreid = pi->task->core_id;
     MSSubTaskRuntimeNode * nodetemp = _handlers_[coreid].head;
     while (nodetemp != NULL)
     {
-        if (node->trt.subtask.id.id2 == subtask_id)
+        if (node->trt.subtask->id.id2 == subtask_id)
         {
             node = nodetemp;
             return true;
@@ -158,14 +155,14 @@ bool getMSSubTaskRuntimeNode(unsigned int subtask_id, MSSubTaskRuntimeNode *node
 }
 
 void deleteMSSubTaskRuntimePoped(MSSubTaskRuntimeNode *node){
-    MSSubTaskHandleInfo *pi = _TM.getMSSubTaskHandleInfo_fromid(node->trt.subtask.id.id2);
-    for(int n=0;n<pi->task.pi_num;n++){
+    MSSubTaskHandleInfo *pi = _TM.getMSSubTaskHandleInfo_fromid(node->trt.subtask->id.id2);
+    for(int n=0;n<pi->task->pi_num;n++){
         // Release memory
-        for (int i = 0; i < pi->task.pis[n].cnt_info.rownum; i++)
+        for (int i = 0; i < pi->task->pis[n].cnt_info.rownum; i++)
         {
-            for (int j = 0; j < pi->task.pis[n].cnt_info.bucketnum; j++)
+            for (int j = 0; j < pi->task->pis[n].cnt_info.bucketnum; j++)
             {
-                for (int k = 0; k < pi->task.pis[n].cnt_info.bucketsize; k++)
+                for (int k = 0; k < pi->task->pis[n].cnt_info.bucketsize; k++)
                 {
                     free((void *)(node->trt.pis[n].res)[i][j][k]);
                     node->trt.pis[n].res[i][j][k] = NULL;
@@ -179,23 +176,23 @@ void deleteMSSubTaskRuntimePoped(MSSubTaskRuntimeNode *node){
         free((void *)node->trt.pis[n].res);
         node->trt.pis[n].res = NULL;
     }
-    release_plugin_index(pi->task.core_id, node->trt.pis[0].id.id1.subtask_index);
+    release_plugin_index(pi->task->core_id, node->trt.pis[0].id.id1.subtask_index);
     free(node);
     node = NULL;
 }
 void deleteMSSubTaskRuntime(unsigned int subtask_id)
 {
     MSSubTaskHandleInfo *pi = _TM.getMSSubTaskHandleInfo_fromid(subtask_id);
-    int coreid = pi->task.core_id;
+    int coreid = pi->task->core_id;
     MSSubTaskRuntimeNode *node = NULL;
     if(popMSSubTaskRuntime(subtask_id, node)){
-        for(int n=0;n<pi->task.pi_num;n++){
+        for(int n=0;n<pi->task->pi_num;n++){
             // Release memory
-            for (int i = 0; i < pi->task.pis[n].cnt_info.rownum; i++)
+            for (int i = 0; i < pi->task->pis[n].cnt_info.rownum; i++)
             {
-                for (int j = 0; j < pi->task.pis[n].cnt_info.bucketnum; j++)
+                for (int j = 0; j < pi->task->pis[n].cnt_info.bucketnum; j++)
                 {
-                    for (int k = 0; k < pi->task.pis[n].cnt_info.bucketsize; k++)
+                    for (int k = 0; k < pi->task->pis[n].cnt_info.bucketsize; k++)
                     {
                         free((void *)(node->trt.pis[n].res)[i][j][k]);
                         node->trt.pis[n].res[i][j][k] = NULL;
@@ -209,7 +206,7 @@ void deleteMSSubTaskRuntime(unsigned int subtask_id)
             free((void *)node->trt.pis[n].res);
             node->trt.pis[n].res = NULL;
         }
-        release_plugin_index(pi->task.core_id, node->trt.pis[0].id.id1.subtask_index);
+        release_plugin_index(pi->task->core_id, node->trt.pis[0].id.id1.subtask_index);
         free(node);
         node = NULL;
     }
@@ -223,7 +220,7 @@ void createSubdirectory(const char* path) {
 // Check if subdirectory exists, create if not
 void checkAndCreateSubdirectory(MSSubTaskRuntimeNode* node) {
     char subdirectoryPath[128];
-    sprintf(subdirectoryPath, "./res/%d", node->trt.subtask.id);
+    sprintf(subdirectoryPath, "./res/%d", node->trt.subtask->id);
     createSubdirectory(subdirectoryPath);
 }
 void dumpMSSubTaskRuntimeNode(MSSubTaskRuntimeNode *node){
@@ -231,17 +228,17 @@ void dumpMSSubTaskRuntimeNode(MSSubTaskRuntimeNode *node){
     checkAndCreateSubdirectory(node);
     for(int n=0;n<node->trt.pi_num;n++){
         char p[128];
-        sprintf(p,"./res/%d/%d",node->trt.subtask.id,n);
+        sprintf(p,"./res/%d/%d",node->trt.subtask->id,n);
         FILE *file = fopen(p, "wb");
         if (file == NULL) {
-            for (int i = 0; i < node->trt.subtask.pis[n].cnt_info.rownum; i++)
+            for (int i = 0; i < node->trt.subtask->pis[n].cnt_info.rownum; i++)
             {
-                for (int j = 0; j < node->trt.subtask.pis[n].cnt_info.bucketnum; j++)
+                for (int j = 0; j < node->trt.subtask->pis[n].cnt_info.bucketnum; j++)
                 {
-                    for (int k = 0; k < node->trt.subtask.pis[n].cnt_info.bucketsize; k++)
+                    for (int k = 0; k < node->trt.subtask->pis[n].cnt_info.bucketsize; k++)
                     {
-                        fwrite(node->trt.pis[n].res[i][j][k], node->trt.subtask.pis[n].cnt_info.countersize, 1, file);
-                        memset(node->trt.pis[n].res[i][j][k], 0, node->trt.subtask.pis[n].cnt_info.countersize);
+                        fwrite(node->trt.pis[n].res[i][j][k], node->trt.subtask->pis[n].cnt_info.countersize, 1, file);
+                        memset(node->trt.pis[n].res[i][j][k], 0, node->trt.subtask->pis[n].cnt_info.countersize);
                     }
                 }
             }

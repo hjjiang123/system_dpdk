@@ -17,7 +17,7 @@ int main(int argc, char **argv)
 	if (ret < 0) {
 		rte_exit(EXIT_FAILURE, "Cannot init port %d\n", 0);
 	}
-	initPluginRuntimeList();
+	// initPluginRuntimeList();
 	runserver();
 
 	// std::thread t2(updateTest);
