@@ -7,10 +7,11 @@ typedef union
 {
     struct
     {
-        unsigned int core_id : 10;      // 核心号
-        unsigned int subtask_index : 10; // 核心内子任务号,由任务调度分配
-        unsigned int flip : 10;          // 是否翻转，0->否，1->是
-        unsigned int reserve : 2;       // 保留位
+        unsigned int task_id : 8; // 核心内子任务号,由任务调度分配
+        unsigned int flip : 8;          // 是否翻转，0->否，1->是
+        unsigned int plugin_id : 4;        // 插件号
+        unsigned int priority : 6;     // 32 - 优先级
+        unsigned int reserved : 6;      // 保留位
     } id1;
     unsigned int id2;
 } MARKID;
@@ -27,17 +28,6 @@ struct CounterInfo
     int bucketsize;  /**< Size of each bucket */
     int countersize; /**< Size of each counter */
 };
-
-// /**
-//  * @brief Structure representing hash information.
-//  *
-//  * This structure contains the number of hashes, the original range, and the hash range.
-//  */
-// struct HashInfo {
-//     int hashnum;
-//     unsigned int key_len;
-//     unsigned int entries;
-// };
 
 /**
  * @brief Structure representing information about a plugin.

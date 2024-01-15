@@ -432,10 +432,19 @@ std::map<unsigned int,std::vector<MSSubTask>> schedule_new_task(MSTask& mst){
     std::map<unsigned int, unsigned long long> used_mem = mem_used();           //节点 - 内存资源消耗
     // 3.判断任务是否可以分割？
     if(mst.obj_split==0){ //不可分割
-        // 查找在当前集群中，该任务是否可以分配？
+        // 4.查找在当前集群中，该任务是否可以分配？
         for (const auto& subtask : subtasks) {
             for(const auto& pair : subtask.second){
-                if(contains(pair.second.flow[0].flow, MSFlowEntry fe2))
+                bool can_schedule = true;
+                for(int i=0;i<mst.flow_num;i++){
+                    if(!contains(pair.second.flow[0].flow, mst.flow[i])){
+                        can_schedule = false;
+                        break;
+                    }
+                }
+                if(can_schedule){
+                    
+                }
             }
         }
     }

@@ -7,6 +7,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+#include "http_request.h"
 #include "../task.h"
 #include "../node/plugin.h"
 typedef struct FlowEntryDupInfo{
